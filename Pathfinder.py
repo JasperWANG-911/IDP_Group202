@@ -22,12 +22,17 @@ sensor_left = machine.Pin(10, machine.Pin.IN)
 sensor_right = machine.Pin(11, machine.Pin.IN)
 
 # -------------- Global Variables for Odometry and Graph --------------
-# Track the current grid position (x, y); starting at (0, 0)
-current_position = (0, 0)
+# Track the current grid position (x, y); starting at (0.0, 0.0)
+current_position = (0.0, 0.0)
 # Track the current direction: 0 = North, 1 = East, 2 = South, 3 = West
 current_direction = 0
 # A dictionary to map intersections (nodes) to the exits (edges) that have been used.
 intersections_map = {}
+
+# -------------- Motor Tuning Parameter --------------
+# Calibrated distance (in grid units) per movement command.
+# Adjust this value based on your motor tuning and calibration.
+DISTANCE_PER_MOVE = 1.0
 
 # -------------- Movement Functions --------------
 def stop_motors():
@@ -40,7 +45,7 @@ def stop_motors():
     right_motor_pwm.duty(0)
 
 def move_forward(speed=600, duration=0.5):
-    # Move forward: assume this advances the vehicle by one grid cell.
+    # Move forward: assume this advances the vehicle by one calibrated grid cell.
     left_motor_pwm.duty(speed)
     right_motor_pwm.duty(speed)
     left_motor_forward_pin.value(1)
@@ -51,7 +56,7 @@ def move_forward(speed=600, duration=0.5):
     stop_motors()
 
 def move_backward(speed=600, duration=0.5):
-    # Move backward: assume this retreats the vehicle by one grid cell.
+    # Move backward: assume this retreats the vehicle by one calibrated grid cell.
     left_motor_pwm.duty(speed)
     right_motor_pwm.duty(speed)
     left_motor_forward_pin.value(0)
@@ -84,39 +89,38 @@ def turn_right(speed=600, duration=0.5):
     stop_motors()
 
 # -------------- Odometry Helper Functions --------------
-def get_new_position(position, heading):
+def get_new_position(position, heading, distance=DISTANCE_PER_MOVE):
     """
-    Compute the new grid position based on the current position and heading.
-    We assume that a forward move advances the robot by one cell.
+    Compute the new grid position based on the current position, heading, and a calibrated distance.
     """
     x, y = position
     if heading == 0:      # North
-        return (x, y + 1)
+        return (x, y + distance)
     elif heading == 1:    # East
-        return (x + 1, y)
+        return (x + distance, y)
     elif heading == 2:    # South
-        return (x, y - 1)
+        return (x, y - distance)
     elif heading == 3:    # West
-        return (x - 1, y)
+        return (x - distance, y)
     return position
 
 def update_odometry(chosen_exit):
     """
-    Update the global current_position and current_direction based solely on the motor commands.
-    Assumes each move (or turn followed by move) results in a one-cell movement.
+    Update the global current_position and current_direction based on the motor commands
+    and the calibrated distance per movement.
     """
     global current_position, current_direction
     if chosen_exit == 'front':
-        current_position = get_new_position(current_position, current_direction)
+        current_position = get_new_position(current_position, current_direction, DISTANCE_PER_MOVE)
     elif chosen_exit == 'left':
         current_direction = (current_direction - 1) % 4
-        current_position = get_new_position(current_position, current_direction)
+        current_position = get_new_position(current_position, current_direction, DISTANCE_PER_MOVE)
     elif chosen_exit == 'right':
         current_direction = (current_direction + 1) % 4
-        current_position = get_new_position(current_position, current_direction)
+        current_position = get_new_position(current_position, current_direction, DISTANCE_PER_MOVE)
     elif chosen_exit == 'rear':
         back_direction = (current_direction + 2) % 4
-        current_position = get_new_position(current_position, back_direction)
+        current_position = get_new_position(current_position, back_direction, DISTANCE_PER_MOVE)
 
 # -------------- Sensor and Intersection Helper Functions --------------
 def get_sensor_pattern():
@@ -134,8 +138,8 @@ def get_sensor_pattern():
 
 def generate_intersection_id(pattern):
     """
-    Generate a unique ID for an intersection using both the current estimated position
-    (tracked solely from motor commands) and the sensor pattern.
+    Generate a unique ID for an intersection using the current estimated position
+    (tracked from motor commands with tuning) and the sensor pattern.
     """
     return (current_position, tuple(sorted(pattern.items())))
 
@@ -175,7 +179,7 @@ def execute_movement(chosen_exit):
     update_odometry(chosen_exit)
     time.sleep(0.2)
 
-# -------------- Main Loop: Graph Building with Motor-Only Odometry --------------
+# -------------- Main Loop: Graph Building with Tuned Odometry --------------
 while True:
     # Read the sensor pattern from track sensors
     sensor_pattern = get_sensor_pattern()
