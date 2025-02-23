@@ -30,9 +30,10 @@ current_direction = 0
 intersections_map = {}
 
 # -------------- Motor Tuning Parameter --------------
-# Calibrated distance (in grid units) per movement command.
-# Adjust this value based on your motor tuning and calibration.
-DISTANCE_PER_MOVE = 1.0
+# Based on a typical small robot:
+# Assuming a wheel diameter of ~70 mm gives a wheel circumference of about 220 mm (0.22 m)
+# If one command equals one wheel revolution, then one grid cell is ~0.22 meters.
+DISTANCE_PER_MOVE = 0.22
 
 # -------------- Movement Functions --------------
 def stop_motors():
