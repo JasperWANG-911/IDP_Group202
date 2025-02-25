@@ -260,12 +260,15 @@ def expected_sensor_pattern(node, current_orientation, candidate_turn_type):
     - For nodes RY and BG: returns None (verification not applied).
     - For nodes X1/X2/X3/X4: all sensors should be active.
     - For other nodes:
-       * If only one neighbor exists, only the sensor matching current_orientation is expected.
-       * If the node has exactly 2 neighbors, it is assumed the vehicle came from behind and the new exit is off to one side.
-         In that case, the expected active sensors are:
-             - the sensor opposite to current_orientation ("rear"), and
-             - the sensor corresponding to the candidate turn ('left' or 'right').
-       * For nodes with more than 2 neighbors, assume an intersection where all sensors are active.
+       * If the node has only one neighbor, only the sensor matching current_orientation is expected.
+       * If the node has exactly 2 neighbors:
+             - If the candidate turn is 'straight', then the sensor pattern is the typical straight road
+               (front and rear active), which should not be treated as a node; so return None.
+             - Otherwise, it is assumed the vehicle came from behind and the new exit is off to one side.
+               In that case, the expected active sensors are:
+                   - the sensor opposite to current_orientation ("rear"), and
+                   - the sensor corresponding to the candidate turn ('left' or 'right').
+       * For nodes with 3 or more neighbors, assume an intersection where all sensors are active.
     """
     if node in ['RY', 'BG']:
         return None
@@ -278,7 +281,11 @@ def expected_sensor_pattern(node, current_orientation, candidate_turn_type):
         expected[mapping[current_orientation]] = 1
         return expected
     elif n_neighbors == 2:
-        # Expected: the sensor opposite to the current orientation (rear)
+        # For a straight road, candidate_turn_type would be 'straight'.
+        if candidate_turn_type == 'straight':
+            # Do not apply sensor verification for a straight road.
+            return None
+        # Otherwise, expected: the sensor opposite to the current orientation (rear)
         # and the sensor corresponding to the candidate turn (left or right).
         rear_sensor = mapping[(current_orientation + 2) % 4]
         if candidate_turn_type == 'left':
@@ -302,7 +309,7 @@ def check_node_sensor(node, current_orientation, candidate_turn_type):
     """
     expected = expected_sensor_pattern(node, current_orientation, candidate_turn_type)
     if expected is None:
-        # No sensor verification for RY and BG nodes.
+        # No sensor verification applied.
         return
     actual = get_sensor_pattern()
     if actual != expected:
