@@ -1,30 +1,60 @@
 import machine
 import time
 import math
-import random  # For random decision-making
+import random
+from motor import Motor  # Import the Motor class from motor.py
 
-# -------------- Motor Setup --------------
-# Left motor control pins
-left_motor_forward_pin = machine.Pin(2, machine.Pin.OUT)
-left_motor_backward_pin = machine.Pin(3, machine.Pin.OUT)
-# Right motor control pins
-right_motor_forward_pin = machine.Pin(4, machine.Pin.OUT)
-right_motor_backward_pin = machine.Pin(5, machine.Pin.OUT)
+# ---------------- Motor Pair Class ----------------
+class MotorPair:
+    def __init__(self, left_motor, right_motor):
+        self.left = left_motor
+        self.right = right_motor
 
-# PWM channels for speed control
-left_motor_pwm = machine.PWM(machine.Pin(6))
-right_motor_pwm = machine.PWM(machine.Pin(7))
-left_motor_pwm.freq(1000)    # Set PWM frequency to 1000 Hz
-right_motor_pwm.freq(1000)
+    def move_forward(self, speed=60, duration=0.5):
+        """
+        Drive both motors forward for the given duration.
+        Speed is given as a percentage (0-100).
+        """
+        self.left.forward(speed)
+        self.right.forward(speed)
+        time.sleep(duration)
+        self.left.off()
+        self.right.off()
 
-# -------------- Sensor Setup --------------
-# Path sensors: front, rear, left, right
-sensor_front = machine.Pin(8, machine.Pin.IN)
-sensor_rear  = machine.Pin(9, machine.Pin.IN)
-sensor_left  = machine.Pin(10, machine.Pin.IN)
-sensor_right = machine.Pin(11, machine.Pin.IN)
+    def move_backward(self, speed=60, duration=0.5):
+        """
+        Drive both motors in reverse for the given duration.
+        Speed is given as a percentage (0-100).
+        """
+        self.left.reverse(speed)
+        self.right.reverse(speed)
+        time.sleep(duration)
+        self.left.off()
+        self.right.off()
 
-# -------------- Global Variables for Navigation --------------
+    def turn_left(self, speed=60, duration=0.5):
+        """
+        Turn in place to the left by stopping the left motor
+        and driving the right motor forward.
+        """
+        self.left.off()
+        self.right.forward(speed)
+        time.sleep(duration)
+        self.left.off()
+        self.right.off()
+
+    def turn_right(self, speed=60, duration=0.5):
+        """
+        Turn in place to the right by driving the left motor forward
+        and stopping the right motor.
+        """
+        self.left.forward(speed)
+        self.right.off()
+        time.sleep(duration)
+        self.left.off()
+        self.right.off()
+
+# ---------------- Global Variables for Navigation ----------------
 # Current position in meters (updated by odometry)
 current_position = (0.0, 0.0)
 # Current node (starting at node 1)
@@ -34,7 +64,7 @@ previous_node = None
 # Vehicle orientation: 0 = North (+y), 1 = East (+x), 2 = South (-y), 3 = West (-x)
 vehicle_orientation = 0
 
-# -------------- Map Setup --------------
+# ---------------- Map Setup ----------------
 # Define map nodes with positions in centimeters (as provided)
 graph_nodes_cm = {
     1: (0, 0),
@@ -86,7 +116,7 @@ edges = [
     (11, 12),
     (12, 'X4')
 ]
-# Build a mapping from each node to its set of neighbors
+# Build a mapping from each node to its set of neighbors.
 graph_neighbors = {}
 for node in graph_nodes:
     graph_neighbors[node] = set()
@@ -95,81 +125,20 @@ for (a, b) in edges:
         graph_neighbors[a].add(b)
         graph_neighbors[b].add(a)
 
-# -------------- Motor Tuning Parameter --------------
+# ---------------- Motor Tuning Parameter ----------------
 # Each movement command drives the robot one grid cell (approx. 0.22 m)
 DISTANCE_PER_MOVE = 0.22
 
-# -------------- Movement Functions --------------
-def stop_motors():
-    """Stop both motors and reset PWM duty cycle to 0."""
-    left_motor_forward_pin.value(0)
-    left_motor_backward_pin.value(0)
-    right_motor_forward_pin.value(0)
-    right_motor_backward_pin.value(0)
-    left_motor_pwm.duty_u16(0)
-    right_motor_pwm.duty_u16(0)
+# ---------------- Instantiate Motors and MotorPair ----------------
+# For integration we reassign motor pins as needed.
+# Here we assume:
+#   - Left motor: direction controlled by pin 3, PWM on pin 2.
+#   - Right motor: direction controlled by pin 5, PWM on pin 4.
+left_motor = Motor(dir_pin=3, pwm_pin=2)
+right_motor = Motor(dir_pin=5, pwm_pin=4)
+motors = MotorPair(left_motor, right_motor)
 
-def move_forward(speed=600, duration=0.5):
-    """
-    Move both motors forward at a given PWM duty (0–65535)
-    for a specified duration (in seconds).
-    """
-    left_motor_pwm.duty_u16(speed)
-    right_motor_pwm.duty_u16(speed)
-    left_motor_forward_pin.value(1)
-    left_motor_backward_pin.value(0)
-    right_motor_forward_pin.value(1)
-    right_motor_backward_pin.value(0)
-    time.sleep(duration)
-    stop_motors()
-    # Update position assuming a forward move.
-    update_position('front')
-
-def move_backward(speed=600, duration=0.5):
-    """Move both motors backward."""
-    left_motor_pwm.duty_u16(speed)
-    right_motor_pwm.duty_u16(speed)
-    left_motor_forward_pin.value(0)
-    left_motor_backward_pin.value(1)
-    right_motor_forward_pin.value(0)
-    right_motor_backward_pin.value(1)
-    time.sleep(duration)
-    stop_motors()
-    update_position('rear')
-
-def turn_left(speed=600, duration=0.5):
-    """
-    Turn in place to the left.
-    This function also updates the vehicle's orientation.
-    """
-    left_motor_pwm.duty_u16(speed)
-    right_motor_pwm.duty_u16(speed)
-    # Stop left motor and let right motor move forward to turn left
-    left_motor_forward_pin.value(0)
-    left_motor_backward_pin.value(0)
-    right_motor_forward_pin.value(1)
-    right_motor_backward_pin.value(0)
-    time.sleep(duration)
-    stop_motors()
-    update_orientation('left')
-
-def turn_right(speed=600, duration=0.5):
-    """
-    Turn in place to the right.
-    This function also updates the vehicle's orientation.
-    """
-    left_motor_pwm.duty_u16(speed)
-    right_motor_pwm.duty_u16(speed)
-    # Stop right motor and let left motor move forward to turn right
-    left_motor_forward_pin.value(1)
-    left_motor_backward_pin.value(0)
-    right_motor_forward_pin.value(0)
-    right_motor_backward_pin.value(0)
-    time.sleep(duration)
-    stop_motors()
-    update_orientation('right')
-
-# -------------- Odometry Helper Functions --------------
+# ---------------- Odometry Helper Functions ----------------
 def update_position(move_type):
     """
     Update the global current_position.
@@ -210,7 +179,7 @@ def update_orientation(turn_direction):
     elif turn_direction == 'right':
         vehicle_orientation = (vehicle_orientation + 1) % 4
 
-# -------------- Alternative Navigation: Random Turn Decision --------------
+# ---------------- Alternative Navigation: Random Turn Decision ----------------
 def get_node_direction(current_node, neighbor):
     """
     Determine the cardinal direction from current_node to neighbor based on their positions.
@@ -269,7 +238,7 @@ def decide_next_node_random(current_node, previous_node, current_orientation):
     new_orientation = candidate_direction if candidate_direction is not None else current_orientation
     return candidate, new_orientation, turn_type
 
-# -------------- Sensor and Node Verification Functions --------------
+# ---------------- Sensor and Node Verification Functions ----------------
 def get_sensor_pattern():
     """
     Read path sensor states and return a dictionary with keys:
@@ -277,10 +246,10 @@ def get_sensor_pattern():
     A value of 1 indicates path detection.
     """
     return {
-        'front': sensor_front.value(),
-        'right': sensor_right.value(),
-        'rear': sensor_rear.value(),
-        'left': sensor_left.value()
+        'front': machine.Pin(8, machine.Pin.IN).value(),
+        'right': machine.Pin(11, machine.Pin.IN).value(),
+        'rear': machine.Pin(9, machine.Pin.IN).value(),
+        'left': machine.Pin(10, machine.Pin.IN).value()
     }
 
 def expected_sensor_pattern(node, current_orientation, candidate_turn_type):
@@ -291,7 +260,7 @@ def expected_sensor_pattern(node, current_orientation, candidate_turn_type):
     - For nodes RY and BG: returns None (verification not applied).
     - For nodes X1/X2/X3/X4: all sensors should be active.
     - For other nodes:
-       * If only one neighbor exists, only the sensor matching current_orientation (i.e. 'front') is expected.
+       * If only one neighbor exists, only the sensor matching current_orientation is expected.
        * If the node has exactly 2 neighbors, it is assumed the vehicle came from behind and the new exit is off to one side.
          In that case, the expected active sensors are:
              - the sensor opposite to current_orientation ("rear"), and
@@ -310,7 +279,7 @@ def expected_sensor_pattern(node, current_orientation, candidate_turn_type):
         return expected
     elif n_neighbors == 2:
         # Expected: the sensor opposite to the current orientation (rear)
-        # and the sensor corresponding to the candidate turn (should be left or right).
+        # and the sensor corresponding to the candidate turn (left or right).
         rear_sensor = mapping[(current_orientation + 2) % 4]
         if candidate_turn_type == 'left':
             side_sensor = 'left'
@@ -329,7 +298,7 @@ def expected_sensor_pattern(node, current_orientation, candidate_turn_type):
 def check_node_sensor(node, current_orientation, candidate_turn_type):
     """
     Check if the actual sensor readings match the expected pattern for the node.
-    If there is a mismatch, print a warning. (Uncomment the assertion to enforce failure.)
+    If there is a mismatch, print a warning. (You may uncomment an assertion to enforce failure.)
     """
     expected = expected_sensor_pattern(node, current_orientation, candidate_turn_type)
     if expected is None:
@@ -339,12 +308,12 @@ def check_node_sensor(node, current_orientation, candidate_turn_type):
     if actual != expected:
         print("Warning: Sensor mismatch at node", node)
         print("Expected:", expected, "Actual:", actual)
-        # Uncomment the next line to enforce an assertion
+        # Uncomment the following line to enforce an assertion:
         # assert actual == expected, "Sensor mismatch at node " + str(node)
     else:
         print("Sensor readings at node", node, "match expected pattern.")
 
-# -------------- Main Loop: Navigation with Random Turn and Sensor Check --------------
+# ---------------- Main Loop: Navigation with Random Turn and Sensor Check ----------------
 while True:
     # Check if the current position is near the current node position.
     node_pos = graph_nodes[current_node]
@@ -365,15 +334,21 @@ while True:
         
         # Execute movement based on the random decision.
         if turn_type == 'straight':
-            move_forward()
+            motors.move_forward(duration=0.5)
+            update_position('front')
         elif turn_type == 'left':
-            turn_left()
-            move_forward()
+            motors.turn_left(duration=0.5)
+            motors.move_forward(duration=0.5)
+            update_position('front')
+            update_orientation('left')
         elif turn_type == 'right':
-            turn_right()
-            move_forward()
+            motors.turn_right(duration=0.5)
+            motors.move_forward(duration=0.5)
+            update_position('front')
+            update_orientation('right')
         elif turn_type == 'rear':
-            move_backward()
+            motors.move_backward(duration=0.5)
+            update_position('rear')
         
         # Update global variables.
         previous_node = current_node
@@ -381,7 +356,7 @@ while True:
         vehicle_orientation = new_orientation
     else:
         # If not yet at the node, continue moving forward slowly.
-        move_forward(duration=0.2)
+        motors.move_forward(duration=0.2)
     
     # Small delay for sensor and motor stabilization.
     time.sleep(0.1)
