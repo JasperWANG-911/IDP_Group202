@@ -10,7 +10,6 @@ class MotorPair:
     def move_forward(self, duration=1.0):
         """
         Drive both motors forward.
-        The Motor1 and Motor2 classes internally set the forward speed.
         """
         self.left.Forward()
         self.right.Forward()
@@ -30,10 +29,10 @@ class MotorPair:
 
     def turn_left(self, duration=1.0):
         """
-        Turn in place to the left by stopping the left motor
-        and driving the right motor forward.
+        Turn on the spot to the left by driving the left motor in reverse
+        and the right motor forward.
         """
-        self.left.off()
+        self.left.Reverse()
         self.right.Forward()
         time.sleep(duration)
         self.left.off()
@@ -41,11 +40,11 @@ class MotorPair:
 
     def turn_right(self, duration=1.0):
         """
-        Turn in place to the right by driving the left motor forward
-        and stopping the right motor.
+        Turn on the spot to the right by driving the left motor forward
+        and the right motor in reverse.
         """
         self.left.Forward()
-        self.right.off()
+        self.right.Reverse()
         time.sleep(duration)
         self.left.off()
         self.right.off()
@@ -66,11 +65,11 @@ if __name__ == "__main__":
     motors.move_backward(duration=1.0)
     time.sleep(1)
 
-    print("Testing motor turn left")
+    print("Testing motor turn left (spinning on the spot)")
     motors.turn_left(duration=1.0)
     time.sleep(1)
 
-    print("Testing motor turn right")
+    print("Testing motor turn right (spinning on the spot)")
     motors.turn_right(duration=1.0)
     time.sleep(1)
 
