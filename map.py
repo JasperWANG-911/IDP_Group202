@@ -14,40 +14,41 @@ class Graph:
         for edge in edgeArr:
             edges.append(edge)
     
-    def get_node_attributes(self, attr):
-        return [node[1][attr] for node in self.nodes]
+    def get_node_pos(self):
+        return [node[1] for node in self.nodes]
     
-    def get_edge_attributes(self, attr):
-        return [edge[2][attr] for edge in self.edges]
+    def get_edge_weight(self):
+        return [edge[2] for edge in self.edges]
     
-    def dijkstra(self, start_node):
-        distances = {}
-        visited = {}
-        for node in nodes:
-            distances.append((node, float('inf')))
-            visited.append((node, False))
-        distances[start_node] = 0
+    def get_neighbours(self, node):
+        neighbours = []
+        for edge in edges:
+            if edge[0] == node[0]:
+                neighbours.append(edge[1])
+            elif edge[1] == node[0]:
+                neighbours.append(edge[0])
+        return neighbours    
 
-        for node in nodes:
-            min_distance = float('inf')
-            u = None
-            for node1 in nodes:
-                if not visited[node] and distances[node] < min_distance:
-                    min_distance = distances[node]
-                    u = node
+    def DFS(self, start, end, path = None, visited = None):
+        if path is None:
+            path = []
+        if visited is None:
+            visited = set()
+        path.append(start)
+        visited.add(start)
+    
+        if start == end:
+            return path[:]
 
-            if u is None:
-                break
-
-            visited[u] = True
-
-            for node2 in nodes:
-                if self.edges[edges[0] == node1 and edges[1] == node2] != 0 and not visited[node2]:
-                    alt = distances[u] + self.adj_matrix[u][v]
-                    if alt < distances[v]:
-                        distances[v] = alt
-
-        return distances
+        for neighbour in self.get_neighbours(start):
+            if neighbour not in visited:
+                result = self.DFS(neighbour, end, path, visited)
+                if result:  # Path found
+                    return result
+        path.pop() # Backtrack
+        return
+    
+    
 
 map = nx.Graph()
 
@@ -72,28 +73,28 @@ nodes1 = [(1, (0,0)),
          ('RY', (-105, 0)),
          ('BG', (104, 0))]         
 
-edges1 = [(1, 2, {"weight" : 44}),
-         (2, 3, {"weight" : 34}),
-         (2, 4, {"weight" : 104}),
-         (3, 'X1', {"weight" : 31}),
-         (3, 5, {"weight" : 71}),
-         (5, 6, {"weight" : 87}),
-         (5, 'RY', {"weight" : 44}),
-         (6, 7, {"weight" : 104}),
-         (6, 13, {"weight" : 76}),
-         (11, 13, {"weight" : 105}),
-         (12, 14, {"weight" : 65}),
-         (7, 10, {"weight" : 37}),
-         (11, 10, {"weight" : 39}),
-         (10, 'X3', {"weight" : 26}),
-         (7, 8, {"weight" : 34}),
-         (8, 'X2', {"weight" : 23}),
-         (8, 9, {"weight" : 71}),
-         (4, 9, {"weight" : 87}),
-         (4, 'BG', {"weight" : 44}),
-         (9, 14, {"weight" : 76}),
-         (11, 12, {"weight" : 39}),
-         (12, 'X4', {"weight" : 23})]
+edges1 = [(1, 2, 44),
+         (2, 3, 34),
+         (2, 4, 104),
+         (3, 'X1', 31),
+         (3, 5, 71),
+         (5, 6, 87),
+         (5, 'RY', 44),
+         (6, 7, 104),
+         (6, 13, 76),
+         (11, 13, 105),
+         (12, 14, 65),
+         (7, 10, 37),
+         (11, 10, 39),
+         (10, 'X3', 26),
+         (7, 8, 34),
+         (8, 'X2', 23),
+         (8, 9, 71),
+         (4, 9, 87),
+         (4, 'BG', 44),
+         (9, 14, 76),
+         (11, 12, 39),
+         (12, 'X4', 23)]
 
 nodes = [(1, {'pos' : (0,0)}),
          (2, {'pos' : (0, 44)}),
