@@ -313,17 +313,20 @@ def check_node_sensor(node, current_orientation, candidate_turn_type):
     else:
         print("Sensor readings at node", node, "match expected pattern.")
 
-# ---------------- Main Loop: Navigation with Random Turn and Sensor Check ----------------
+# ---------------- Main Loop: Navigation with Random Turn and Sensor Check using Sensor Pattern ----------------
 while True:
-    # Check if the current position is near the current node position.
-    node_pos = graph_nodes[current_node]
-    distance_to_node = math.sqrt((current_position[0] - node_pos[0])**2 +
-                                 (current_position[1] - node_pos[1])**2)
-    if distance_to_node < 0.05:
-        # The vehicle is considered to have reached the node.
+    # Read the current sensor pattern.
+    sensor_pattern = get_sensor_pattern()
+    sensor_count = sum(sensor_pattern.values())
+    
+    # Determine if a node is reached:
+    # A node is considered reached if:
+    #   - Three or more sensors are active, or
+    #   - Exactly two sensors are active, but at least one is left or right (i.e. not just front and rear).
+    if sensor_count >= 3 or (sensor_count == 2 and (sensor_pattern['left'] == 1 or sensor_pattern['right'] == 1)):
         print("Vehicle reached node:", current_node,
-              "at position:", current_position,
-              "with orientation:", vehicle_orientation)
+              "with sensor pattern:", sensor_pattern,
+              "and orientation:", vehicle_orientation)
         
         # Decide randomly which neighbor to take next.
         candidate, new_orientation, turn_type = decide_next_node_random(current_node, previous_node, vehicle_orientation)
@@ -355,7 +358,7 @@ while True:
         current_node = candidate
         vehicle_orientation = new_orientation
     else:
-        # If not yet at the node, continue moving forward slowly.
+        # If the sensor pattern does not indicate a node, continue moving forward slowly.
         motors.move_forward(duration=0.2)
     
     # Small delay for sensor and motor stabilization.
