@@ -1,6 +1,24 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 
+class Graph:
+    nodes = []
+    edges = []
+
+    def add_nodes_from(nodeArr):
+        for node in nodeArr:
+            nodes.append(node)
+        
+    def add_edges_from(edgeArr):
+        for edge in edgeArr:
+            edges.append(edge)
+    
+    def get_node_attributes(self, attr):
+        return [node[1][attr] for node in self.nodes]
+    
+    def get_edge_attributes(self, attr):
+        return [edge[2][attr] for edge in self.edges]
+
 map = nx.Graph()
 
 nodes = [(1, {'pos' : (0,0)}),
