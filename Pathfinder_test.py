@@ -3,7 +3,7 @@ import time
 import math
 import random
 import sensor             # Import the sensor module from sensor.py
-from motor import Motor   # Import the Motor class from motor.py
+from motor import Motor1, Motor2   # Import Motor1 and Motor2 classes from motor.py
 
 # ---------------- Motor Pair Class ----------------
 class MotorPair:
@@ -11,46 +11,44 @@ class MotorPair:
         self.left = left_motor
         self.right = right_motor
 
-    def move_forward(self, speed=60, duration=0.5):
+    def move_forward(self, duration=0.5):
         """
         Drive both motors forward for the given duration.
-        Speed is given as a percentage (0-100).
         """
-        self.left.forward(speed)
-        self.right.forward(speed)
+        self.left.Forward()   # Call Forward method (fixed speed)
+        self.right.Forward()
         time.sleep(duration)
         self.left.off()
         self.right.off()
 
-    def move_backward(self, speed=60, duration=0.5):
+    def move_backward(self, duration=0.5):
         """
         Drive both motors in reverse for the given duration.
-        Speed is given as a percentage (0-100).
         """
-        self.left.reverse(speed)
-        self.right.reverse(speed)
+        self.left.Reverse()   # Call Reverse method (fixed speed)
+        self.right.Reverse()
         time.sleep(duration)
         self.left.off()
         self.right.off()
 
-    def turn_left(self, speed=60, duration=0.5):
+    def turn_left(self, duration=0.5):
         """
         Turn on the spot to the left by running the left motor in reverse
         and the right motor forward.
         """
-        self.left.reverse(speed)
-        self.right.forward(speed)
+        self.left.Reverse()
+        self.right.Forward()
         time.sleep(duration)
         self.left.off()
         self.right.off()
 
-    def turn_right(self, speed=60, duration=0.5):
+    def turn_right(self, duration=0.5):
         """
         Turn on the spot to the right by running the left motor forward
         and the right motor in reverse.
         """
-        self.left.forward(speed)
-        self.right.reverse(speed)
+        self.left.Forward()
+        self.right.Reverse()
         time.sleep(duration)
         self.left.off()
         self.right.off()
@@ -105,8 +103,8 @@ for (a, b) in edges:
 DISTANCE_PER_MOVE = 0.22   # Each move command drives one grid cell (~0.22 m)
 
 # ---------------- Instantiate Motors and MotorPair ----------------
-left_motor = Motor(dir_pin=3, pwm_pin=2)
-right_motor = Motor(dir_pin=5, pwm_pin=4)
+left_motor = Motor1()   # Instantiated with fixed pins defined in motor.py
+right_motor = Motor2()
 motors = MotorPair(left_motor, right_motor)
 
 # ---------------- Odometry Helper Functions ----------------
@@ -138,7 +136,7 @@ def update_orientation(turn_direction):
         vehicle_orientation = (vehicle_orientation + 1) % 4
 
 # ---------------- Turning Helper Function ----------------
-def turn_until_shift(turn_type, speed=60, increment=0.1, timeout=3):
+def turn_until_shift(turn_type, increment=0.1, timeout=3):
     """
     Turn in small increments until a 90° shift is detected.
     For a left turn, we require that the left sensor is active and the front sensor is off for 3 consecutive readings.
@@ -149,9 +147,9 @@ def turn_until_shift(turn_type, speed=60, increment=0.1, timeout=3):
     consecutive_count = 0
     while time.time() - start_time < timeout:
         if turn_type == 'left':
-            motors.turn_left(speed=speed, duration=increment)
+            motors.turn_left(duration=increment)
         elif turn_type == 'right':
-            motors.turn_right(speed=speed, duration=increment)
+            motors.turn_right(duration=increment)
         sensor_data = sensor.get_track_sensor_pattern()
         if turn_type == 'left':
             if sensor_data['left'] == 1 and sensor_data['front'] == 0:
@@ -295,12 +293,12 @@ while True:
             motors.move_forward(duration=0.5)
             update_position('front')
         elif turn_type == 'left':
-            turn_until_shift('left', speed=60, increment=0.1, timeout=3)
+            turn_until_shift('left', increment=0.1, timeout=3)
             motors.move_forward(duration=0.5)
             update_position('front')
             update_orientation('left')
         elif turn_type == 'right':
-            turn_until_shift('right', speed=60, increment=0.1, timeout=3)
+            turn_until_shift('right', increment=0.1, timeout=3)
             motors.move_forward(duration=0.5)
             update_position('front')
             update_orientation('right')
