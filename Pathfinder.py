@@ -3,19 +3,22 @@
 import machine
 import time
 
-# -------------- Motor Setup --------------
-# Left motor control pins
-left_motor_forward_pin = machine.Pin(2, machine.Pin.OUT)
-left_motor_backward_pin = machine.Pin(3, machine.Pin.OUT)
-# Right motor control pins
-right_motor_forward_pin = machine.Pin(4, machine.Pin.OUT)
-right_motor_backward_pin = machine.Pin(5, machine.Pin.OUT)
+# break down into modules: no need for motor setup, sensor setup...
+# we just do path tracking here
 
-# PWM channels for speed control
-left_motor_pwm = machine.PWM(machine.Pin(6))
-right_motor_pwm = machine.PWM(machine.Pin(7))
-left_motor_pwm.freq(1000)    # Set PWM frequency to 1000 Hz
-right_motor_pwm.freq(1000)
+# # -------------- Motor Setup --------------
+# # Left motor control pins
+# left_motor_forward_pin = machine.Pin(2, machine.Pin.OUT)
+# left_motor_backward_pin = machine.Pin(3, machine.Pin.OUT)
+# # Right motor control pins
+# right_motor_forward_pin = machine.Pin(4, machine.Pin.OUT)
+# right_motor_backward_pin = machine.Pin(5, machine.Pin.OUT)
+
+# # PWM channels for speed control
+# left_motor_pwm = machine.PWM(machine.Pin(6))
+# right_motor_pwm = machine.PWM(machine.Pin(7))
+# left_motor_pwm.freq(1000)    # Set PWM frequency to 1000 Hz
+# right_motor_pwm.freq(1000)
 
 # -------------- Sensor Setup --------------
 # Track sensors: front, rear, left, right
@@ -33,6 +36,9 @@ intersections_map = {}         # To store visited intersection exits
 # With a ~70 mm wheel (circumference ~220 mm = 0.22 m), we assume each move command
 # drives the robot one "grid cell" of ~0.22 m.
 DISTANCE_PER_MOVE = 0.22
+
+# Use circumference * number of turns
+
 
 # -------------- Movement Functions --------------
 def stop_motors():
