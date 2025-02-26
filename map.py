@@ -6,13 +6,13 @@ class Graph:
         self.nodes = []
         self.edges = []
 
-    def add_nodes_from(nodeArr):
+    def add_nodes_from(self, nodeArr):
         for node in nodeArr:
-            nodes.append(node)
+            self.nodes.append(node)
         
-    def add_edges_from(edgeArr):
+    def add_edges_from(self, edgeArr):
         for edge in edgeArr:
-            edges.append(edge)
+            self.edges.append(edge)
     
     def get_node_pos(self):
         return [node[1] for node in self.nodes]
@@ -47,10 +47,6 @@ class Graph:
                     return result
         path.pop() # Backtrack
         return
-    
-    
-
-map = nx.Graph()
 
 nodes1 = [(1, (0,0)),
          (2, (0, 44)),
@@ -95,6 +91,8 @@ edges1 = [(1, 2, 44),
          (9, 14, 76),
          (11, 12, 39),
          (12, 'X4', 23)]
+
+map = nx.Graph()
 
 nodes = [(1, {'pos' : (0,0)}),
          (2, {'pos' : (0, 44)}),
@@ -142,6 +140,12 @@ edges = [(1, 2, {"weight" : 44}),
 
 map.add_nodes_from(nodes)
 map.add_edges_from(edges)
+
+map1 = Graph()
+map1.add_nodes_from(nodes1)
+map1.add_edges_from(edges1)
+
+#print(map1.DFS(1, 9))
 
 nx.draw(map, nx.get_node_attributes(map, 'pos'), with_labels = True)
 nx.draw_networkx_edge_labels(map, nx.get_node_attributes(map, 'pos'), nx.get_edge_attributes(map, "weight"))
