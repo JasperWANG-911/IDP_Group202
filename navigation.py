@@ -1,102 +1,64 @@
 import time
-import random
-import sensor_for_main as sensor  # Import sensor module to read sensor data
+from graph_classes import graph  # Use the new graph structure :contentReference[oaicite:0]{index=0}
+import sensor_for_main as sensor  # Sensor functions are provided by sensor_for_main.py
 
-# ---------------- Map Setup ----------------
-# Define graph nodes in centimeters and convert them to meters
-graph_nodes_cm = {
-    1: (0, 0),
-    2: (0, 44),
-    3: (-34, 44),
-    4: (104, 44),
-    5: (-105, 44),
-    6: (-105, 131),
-    7: (-1, 131),
-    8: (33, 131),
-    9: (104, 131),
-    10: (-1, 168),
-    11: (-1, 207),
-    12: (38, 207),
-    13: (-105, 207),
-    14: (104, 207),
-    'X1': (-34, 75),
-    'X2': (33, 108),
-    'X3': (-27, 168),
-    'X4': (38, 184),
-    'RY': (-105, 0),
-    'BG': (104, 0)
-}
-graph_nodes = {node: (pos[0] * 0.01, pos[1] * 0.01) for node, pos in graph_nodes_cm.items()}
+# Predetermined route: after starting at node 1, visit these nodes in order.
+TARGET_ROUTE = ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']
 
-# Define the edges between nodes and build neighbor relationships
-edges = [
-    (1, 2), (2, 3), (2, 4), (3, 'X1'), (3, 5),
-    (5, 6), (5, 'RY'), (6, 7), (6, 13), (11, 13),
-    (11, 14), (9, 14), (7, 10), (11, 10), (10, 'X3'),
-    (7, 8), (8, 'X2'), (8, 9), (4, 9), (4, 'BG'),
-    (11, 12), (12, 'X4')
-]
-graph_neighbors = {}
-for node in graph_nodes:
-    graph_neighbors[node] = set()
-for (a, b) in edges:
-    if a in graph_nodes and b in graph_nodes:
-        graph_neighbors[a].add(b)
-        graph_neighbors[b].add(a)
+# Mapping from cardinal directions (letters) to numeric orientation (0: North, 1: East, 2: South, 3: West)
+direction_map = {'N': 0, 'E': 1, 'S': 2, 'W': 3}
 
-def get_node_direction(current_node, neighbor):
+def get_edge_direction(current_node, next_node):
     """
-    Determine the direction from the current node to a neighbor node.
-    Returns:
-      0 for North, 1 for East, 2 for South, 3 for West, or None if indeterminate.
+    Retrieve the cardinal direction (as a letter) from current_node to next_node
+    based on the graph edge information.
+    Returns one of 'N', 'E', 'S', or 'W' or None if not found.
     """
-    current_pos = graph_nodes[current_node]
-    neighbor_pos = graph_nodes[neighbor]
-    dx = neighbor_pos[0] - current_pos[0]
-    dy = neighbor_pos[1] - current_pos[1]
-    tol = 1e-6
-    if abs(dx) < tol and dy > 0:
-        return 0
-    elif abs(dy) < tol and dx > 0:
-        return 1
-    elif abs(dx) < tol and dy < 0:
-        return 2
-    elif abs(dy) < tol and dx < 0:
-        return 3
+    if current_node not in graph.nodes:
+        return None
+    node_obj = graph.nodes[current_node]
+    for neighbor, weight, dir_value in node_obj.adjacent:
+        if neighbor.value == next_node:
+            return dir_value
     return None
 
-def decide_next_node_random(current_node, previous_node, current_orientation):
+def get_next_node(current_node, target):
     """
-    Randomly decide the next node to navigate to while avoiding the previous node if possible.
-    Returns a tuple: (candidate node, new orientation, turn type)
+    Compute the shortest path from current_node to target using Dijkstra's algorithm,
+    then return the immediate next node on that path.
     """
-    neighbors = list(graph_neighbors[current_node])
-    if previous_node is not None and len(neighbors) > 1:
-        if previous_node in neighbors:
-            neighbors.remove(previous_node)
-    candidate = random.choice(neighbors) if neighbors else previous_node
-    candidate_direction = get_node_direction(current_node, candidate)
-    if candidate_direction is None:
-        turn_type = 'straight'
-    else:
-        diff = (candidate_direction - current_orientation) % 4
-        if diff == 0:
-            turn_type = 'straight'
-        elif diff == 1:
-            turn_type = 'right'
-        elif diff == 3:
-            turn_type = 'left'
-        elif diff == 2:
-            turn_type = 'rear'
-        else:
-            turn_type = 'straight'
-    new_orientation = candidate_direction if candidate_direction is not None else current_orientation
-    return candidate, new_orientation, turn_type
+    path, distance = graph.dijkstra(current_node, target)
+    if path is None or len(path) < 2:
+        # Already at target or no path found
+        return current_node
+    # The path list begins with current_node; return the second element.
+    return path[1]
+
+def compute_turn_type(current_orientation, desired_direction):
+    """
+    Compare the vehicle's current numeric orientation with the desired direction (numeric)
+    and determine the turn type needed.
+    Returns one of: 'straight', 'left', 'right', or 'rear'.
+    """
+    diff = (desired_direction - current_orientation) % 4
+    if diff == 0:
+        return 'straight'
+    elif diff == 1:
+        return 'right'
+    elif diff == 3:
+        return 'left'
+    elif diff == 2:
+        return 'rear'
+    return 'straight'
 
 def expected_sensor_pattern(node, current_orientation, candidate_turn_type):
     """
-    Determine the expected sensor pattern at a given node based on orientation and turn decision.
-    Returns a dictionary with expected sensor values or None if no check is needed.
+    Return the expected track sensor pattern for a given node.
+    For simplicity, this function assumes:
+      - Node 1: no sensor is active.
+      - Special nodes (X1, X2, X3, X4): all sensors active.
+      - For nodes 'RY' and 'BG', no sensor check is applied.
+    Modify as needed for your hardware.
     """
     if node == 1:
         return {'front': 0, 'right': 0, 'rear': 0, 'left': 0}
@@ -104,32 +66,12 @@ def expected_sensor_pattern(node, current_orientation, candidate_turn_type):
         return None
     if node in ['X1', 'X2', 'X3', 'X4']:
         return {'front': 1, 'right': 1, 'rear': 1, 'left': 1}
-    n_neighbors = len(graph_neighbors[node])
-    mapping = {0: 'front', 1: 'right', 2: 'rear', 3: 'left'}
-    if n_neighbors == 1:
-        expected = {'front': 0, 'right': 0, 'rear': 0, 'left': 0}
-        expected[mapping[current_orientation]] = 1
-        return expected
-    elif n_neighbors == 2:
-        if candidate_turn_type == 'straight':
-            return None
-        rear_sensor = mapping[(current_orientation + 2) % 4]
-        if candidate_turn_type == 'left':
-            side_sensor = 'left'
-        elif candidate_turn_type == 'right':
-            side_sensor = 'right'
-        else:
-            side_sensor = mapping[current_orientation]
-        expected = {'front': 0, 'right': 0, 'rear': 0, 'left': 0}
-        expected[rear_sensor] = 1
-        expected[side_sensor] = 1
-        return expected
-    else:
-        return {'front': 1, 'right': 1, 'rear': 1, 'left': 1}
+    return None
 
 def check_node_sensor(node, current_orientation, candidate_turn_type):
     """
-    Compare the actual sensor readings to the expected pattern at a node.
+    Compare the actual sensor readings with the expected pattern.
+    Prints a warning if there is a mismatch.
     """
     expected = expected_sensor_pattern(node, current_orientation, candidate_turn_type)
     if expected is None:
@@ -144,7 +86,7 @@ def check_node_sensor(node, current_orientation, candidate_turn_type):
 def turn_until_shift(motors, turn_type, increment=0.1, timeout=3):
     """
     Turn in small increments until a 90° shift is detected based on sensor readings.
-    This function uses the MotorPair instance and checks sensor data.
+    The turning is done using the provided MotorPair instance.
     """
     start_time = time.time()
     consecutive_count = 0
@@ -168,3 +110,66 @@ def turn_until_shift(motors, turn_type, increment=0.1, timeout=3):
             print(f"{turn_type.capitalize()} turn complete based on sensor shift.")
             return
     print("Turn timeout reached without clear sensor shift.")
+
+def run_navigation(motors, odom):
+    """
+    Main navigation loop using the predetermined route.
+    'motors' is an instance of MotorPair.
+    'odom' is an instance managing odometry (vehicle position and orientation).
+    The vehicle begins at node 1 and proceeds to each target in TARGET_ROUTE.
+    """
+    current_node = 1
+    target_index = 0
+    num_targets = len(TARGET_ROUTE)
+    
+    while target_index < num_targets:
+        target = TARGET_ROUTE[target_index]
+        
+        # If the current node is the target, update to the next target.
+        if current_node == target:
+            print(f"Reached target node: {target}")
+            target_index += 1
+            continue
+        
+        # Compute the next node on the shortest path from current_node to target.
+        next_node = get_next_node(current_node, target)
+        print(f"Current node: {current_node}, Next node: {next_node}, Target: {target}")
+        
+        # Determine desired turn direction from graph edge info.
+        edge_dir = get_edge_direction(current_node, next_node)
+        if edge_dir is None:
+            print(f"Could not determine direction from {current_node} to {next_node}. Moving straight.")
+            desired_direction = odom.vehicle_orientation
+        else:
+            desired_direction = direction_map[edge_dir]
+        
+        # Compute the required turn type.
+        turn_type = compute_turn_type(odom.vehicle_orientation, desired_direction)
+        print(f"Vehicle orientation: {odom.vehicle_orientation}, Desired direction: {desired_direction}, Turn: {turn_type}")
+        
+        # Perform sensor check at the node.
+        check_node_sensor(current_node, odom.vehicle_orientation, turn_type)
+        
+        # Execute movement based on the turn type.
+        if turn_type == 'straight':
+            motors.move_forward(duration=0.5)
+            odom.update_position('front')
+        elif turn_type == 'left':
+            turn_until_shift(motors, 'left', increment=0.1, timeout=3)
+            motors.move_forward(duration=0.5)
+            odom.update_position('front')
+            odom.update_orientation('left')
+        elif turn_type == 'right':
+            turn_until_shift(motors, 'right', increment=0.1, timeout=3)
+            motors.move_forward(duration=0.5)
+            odom.update_position('front')
+            odom.update_orientation('right')
+        elif turn_type == 'rear':
+            motors.move_backward(duration=0.5)
+            odom.update_position('rear')
+        
+        # Update the current node after executing movement.
+        current_node = next_node
+        time.sleep(0.1)
+    
+    print("Navigation complete. All target nodes reached.")
