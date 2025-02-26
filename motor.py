@@ -31,3 +31,4 @@ class Motor2:
         self.m1Dir.value(1)
         self.pwm1.duty_u16(int(65535*30/100))
 ###
+
