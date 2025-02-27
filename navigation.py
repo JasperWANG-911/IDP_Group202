@@ -1,6 +1,7 @@
 import time
 from graph_classes import graph  # Use the new graph structure :contentReference[oaicite:0]{index=0}
 import sensor_for_main as sensor  # Sensor functions are provided by sensor_for_main.py
+import odometry as odom
 
 # Predetermined route: after starting at node 1, visit these nodes in order.
 TARGET_ROUTE = ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']
@@ -156,14 +157,16 @@ def run_navigation(motors, odom):
             odom.update_position('front')
         elif turn_type == 'left':
             turn_until_shift(motors, 'left', increment=0.1, timeout=3)
+            # Update orientation immediately after turn, before moving forward.
+            odom.update_orientation('left')
             motors.move_forward(duration=0.5)
             odom.update_position('front')
-            odom.update_orientation('left')
         elif turn_type == 'right':
             turn_until_shift(motors, 'right', increment=0.1, timeout=3)
+            # Update orientation immediately after turn, before moving forward.
+            odom.update_orientation('right')
             motors.move_forward(duration=0.5)
             odom.update_position('front')
-            odom.update_orientation('right')
         elif turn_type == 'rear':
             motors.move_backward(duration=0.5)
             odom.update_position('rear')
