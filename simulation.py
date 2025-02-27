@@ -361,7 +361,7 @@ def turn_until_shift(motors, turn_type, increment=0.1, timeout=3):
     print("Turn timeout reached without achieving a stable sensor pattern.")
     fake_sensor_instance.set_mode('straight')
 
-def run_navigation(motors, odom):
+def run_navigation(motors, odom_obj):
     visited = [1]  # start at node 1
     current_node = 1
     target_index = 0
@@ -371,7 +371,9 @@ def run_navigation(motors, odom):
         target = TARGET_ROUTE[target_index]
         if current_node == target:
             print(f"Reached target node: {target}")
-            visited.append(target)
+            # Append target only if it's not already the last visited node
+            if visited[-1] != target:
+                visited.append(target)
             target_index += 1
             continue
         
@@ -379,29 +381,36 @@ def run_navigation(motors, odom):
         print(f"Current: {current_node}, Next: {next_node}, Target: {target}")
         edge_dir = get_edge_direction(current_node, next_node)
         if edge_dir is None:
-            desired_direction = odom.vehicle_orientation
+            desired_direction = odom_obj.vehicle_orientation
         else:
             desired_direction = direction_map[edge_dir]
         
-        turn_type = compute_turn_type(odom.vehicle_orientation, desired_direction)
-        print(f"Orientation: {odom.vehicle_orientation}, Desired: {desired_direction}, Turn: {turn_type}")
-        check_node_sensor(current_node, odom.vehicle_orientation, turn_type)
+        turn_type = compute_turn_type(odom_obj.vehicle_orientation, desired_direction)
+        print(f"Orientation: {odom_obj.vehicle_orientation}, Desired: {desired_direction}, Turn: {turn_type}")
+        check_node_sensor(current_node, odom_obj.vehicle_orientation, turn_type)
         
         if turn_type == 'straight':
             motors.move_forward(duration=0.5)
+            odom_obj.update_position('front')
         elif turn_type == 'left':
             turn_until_shift(motors, 'left', increment=0.1, timeout=3)
-            odom.update_orientation('left')
+            odom_obj.update_orientation('left')
             motors.move_forward(duration=0.5)
+            odom_obj.update_position('front')
         elif turn_type == 'right':
             turn_until_shift(motors, 'right', increment=0.1, timeout=3)
-            odom.update_orientation('right')
+            odom_obj.update_orientation('right')
             motors.move_forward(duration=0.5)
+            odom_obj.update_position('front')
         elif turn_type == 'rear':
             motors.move_backward(duration=0.5)
-        # (For simulation, we skip odometry updates on position.)
-        current_node = next_node
-        visited.append(current_node)
+            odom_obj.update_position('rear')
+        
+        # Only update current_node and record if it has changed.
+        if next_node != current_node:
+            current_node = next_node
+            if visited[-1] != current_node:
+                visited.append(current_node)
         time.sleep(0.1)
     
     # Return to node 1 if not already there.
@@ -412,19 +421,53 @@ def run_navigation(motors, odom):
             print(f"Return: Current: {current_node}, Next: {next_node}")
             edge_dir = get_edge_direction(current_node, next_node)
             if edge_dir is None:
-                desired_direction = odom.vehicle_orientation
+                desired_direction = odom_obj.vehicle_orientation
             else:
                 desired_direction = direction_map[edge_dir]
-            turn_type = compute_turn_type(odom.vehicle_orientation, desired_direction)
+            turn_type = compute_turn_type(odom_obj.vehicle_orientation, desired_direction)
             if turn_type == 'straight':
                 motors.move_forward(duration=0.5)
             elif turn_type == 'left':
                 turn_until_shift(motors, 'left', increment=0.1, timeout=3)
-                odom.update_orientation('left')
+                odom_obj.update_orientation('left')
                 motors.move_forward(duration=0.5)
             elif turn_type == 'right':
                 turn_until_shift(motors, 'right', increment=0.1, timeout=3)
-                odom.update_orientation('right')
+                odom_obj.update_orientation('right')
+                motors.move_forward(duration=0.5)
+            elif turn_type == 'rear':
+                motors.move_backward(duration=0.5)
+            if next_node != current_node:
+                current_node = next_node
+                if visited[-1] != current_node:
+                    visited.append(current_node)
+            time.sleep(0.1)
+    
+    print("Navigation complete. Route visited:", visited)
+    return visited
+
+    
+    # Return to node 1 if not already there.
+    if current_node != 1:
+        print("Returning to node 1...")
+        while current_node != 1:
+            next_node = get_next_node(current_node, 1)
+            print(f"Return: Current: {current_node}, Next: {next_node}")
+            edge_dir = get_edge_direction(current_node, next_node)
+            if edge_dir is None:
+                desired_direction = odom_obj.vehicle_orientation
+            else:
+                desired_direction = direction_map[edge_dir]
+            turn_type = compute_turn_type(odom_obj.vehicle_orientation, desired_direction)
+            if turn_type == 'straight':
+                motors.move_forward(duration=0.5)
+            elif turn_type == 'left':
+                turn_until_shift(motors, 'left', increment=0.1, timeout=3)
+                odom_obj.update_orientation('left')
+                motors.move_forward(duration=0.5)
+            elif turn_type == 'right':
+                turn_until_shift(motors, 'right', increment=0.1, timeout=3)
+                odom_obj.update_orientation('right')
                 motors.move_forward(duration=0.5)
             elif turn_type == 'rear':
                 motors.move_backward(duration=0.5)
@@ -441,7 +484,7 @@ def run_navigation(motors, odom):
 def main():
     print("Starting simulation with fake hardware and map.")
     motors = FakeMotorPair()
-    odom = Odometry()
+    odom_obj = Odometry()
     
     # Display the graph (map)
     print("Graph:")
@@ -450,7 +493,7 @@ def main():
     print(f"Example path from 1 to X1: {path}, Distance: {dist:.2f}")
     
     # Run navigation simulation (visit targets and return to 1)
-    visited_nodes = run_navigation(motors, odom)
+    visited_nodes = run_navigation(motors, odom_obj)
     print("Visited nodes:", visited_nodes)
     
     # Plot the graph (all edges) and the visited route.
@@ -476,7 +519,23 @@ def main():
             route_y.append(y)
     plt.plot(route_x, route_y, 'r-', marker='o', markersize=8, label='Route', zorder=2)
     
-    plt.title("Simulated Navigation Route")
+    # Gather visit orders per node
+    visit_orders = {}
+    for i, node in enumerate(visited_nodes, start=1):
+        if node in visit_orders:
+            visit_orders[node].append(i)
+        else:
+            visit_orders[node] = [i]
+    
+    # Annotate each visited node with its order in brackets
+    for node, orders in visit_orders.items():
+        if node in graph_nodes:
+            x, y = graph_nodes[node]
+            # Offset the annotation so it doesn't overlap the marker.
+            plt.text(x + 0.02, y + 0.02, f"{node}: {orders}", fontsize=10, color='blue', 
+                     ha='left', va='bottom', bbox=dict(facecolor='white', alpha=0.6, edgecolor='none'))
+    
+    plt.title("Simulated Navigation Route (Visit Order Annotated)")
     plt.xlabel("X (m)")
     plt.ylabel("Y (m)")
     plt.legend()
