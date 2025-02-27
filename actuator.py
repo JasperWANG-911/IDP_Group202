@@ -1,43 +1,31 @@
-import RPi.GPIO as GPIO
+from machine import Pin
 import time
 
-# Define the GPIO pins (using BCM numbering)
-EXTEND_PIN = 18   # GPIO pin to extend the actuator
-RETRACT_PIN = 23  # GPIO pin to retract the actuator
-
-# Set up the GPIO mode and pins
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(EXTEND_PIN, GPIO.OUT)
-GPIO.setup(RETRACT_PIN, GPIO.OUT)
+# Define the control pins for extending and retracting
+extend_pin = Pin(15, Pin.OUT)   # Change 15 to your extend control pin number
+retract_pin = Pin(14, Pin.OUT)  # Change 14 to your retract control pin number
 
 def extend_actuator(duration):
-    print("Extending actuator")
-    GPIO.output(EXTEND_PIN, GPIO.HIGH)
-    GPIO.output(RETRACT_PIN, GPIO.LOW)
+    print("Extending actuator for", duration, "seconds.")
+    extend_pin.value(1)    # Activate extension
+    retract_pin.value(0)   # Ensure retraction is off
     time.sleep(duration)
     stop_actuator()
 
 def retract_actuator(duration):
-    print("Retracting actuator")
-    GPIO.output(EXTEND_PIN, GPIO.LOW)
-    GPIO.output(RETRACT_PIN, GPIO.HIGH)
+    print("Retracting actuator for", duration, "seconds.")
+    extend_pin.value(0)    # Ensure extension is off
+    retract_pin.value(1)   # Activate retraction
     time.sleep(duration)
     stop_actuator()
 
 def stop_actuator():
-    # Set both pins LOW to stop any motion
-    GPIO.output(EXTEND_PIN, GPIO.LOW)
-    GPIO.output(RETRACT_PIN, GPIO.LOW)
-    print("Actuator stopped")
-    time.sleep(1)  # Pause for a moment before next action
+    print("Stopping actuator.")
+    extend_pin.value(0)
+    retract_pin.value(0)
+    time.sleep(1)  # Pause briefly before the next action
 
-try:
-    while True:
-        extend_actuator(3)  # Extend for 3 seconds
-        retract_actuator(3) # Retract for 3 seconds
-
-except KeyboardInterrupt:
-    print("Program interrupted by user")
-
-finally:
-    GPIO.cleanup()  # Reset the GPIO settings
+# Main loop to continuously extend and retract the actuator
+while True:
+    extend_actuator(3)   # Extend for 3 seconds
+    retract_actuator(3)  # Retract for 3 seconds
