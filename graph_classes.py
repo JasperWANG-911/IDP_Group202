@@ -192,12 +192,13 @@ edges = [(1, 2, 44, 0),
          (11, 12, 39, 1),
          (12, 'X4', 23, 2)]
 
+# Initialising graph to contain IDP map information
 graph = Graph()
 graph.add_nodes_from(nodes)
 graph.add_edges_from(edges)
 
 
 # ------ Testing ------
-graph.display()
-path, distance = graph.dijkstra(1, 'X1')
-print(f"Shortest path: {path}, Distance: {distance}")
+#graph.display()
+#path, distance = graph.dijkstra(1, 'X1')
+#print(f"Shortest path: {path}, Distance: {distance}")
