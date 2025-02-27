@@ -87,30 +87,56 @@ def check_node_sensor(node, current_orientation, candidate_turn_type):
 def turn_until_shift(motors, turn_type, increment=0.1, timeout=3):
     """
     Turn in small increments until a 90° shift is detected based on sensor readings.
-    The turning is done using the provided MotorPair instance.
+    This improved version requires that the expected sensor pattern remains stable for a short
+    duration (stable_time) before considering the turn complete.
+
+    Parameters:
+      - motors: MotorPair instance controlling the robot.
+      - turn_type: 'left' or 'right' indicating the direction to turn.
+      - increment: Duration (in seconds) for each incremental motor command (used as the polling interval).
+      - timeout: Maximum time (in seconds) to attempt the turn before giving up.
     """
+    import time
     start_time = time.time()
-    consecutive_count = 0
+    stable_time = 0.2  # Duration the expected sensor pattern must remain stable
+    pattern_stable_start = None
+
     while time.time() - start_time < timeout:
+        # Execute a small incremental turn based on the requested direction.
         if turn_type == 'left':
             motors.turn_left(duration=increment)
         elif turn_type == 'right':
             motors.turn_right(duration=increment)
+        else:
+            raise ValueError("Invalid turn_type. Use 'left' or 'right'.")
+
+        # Read the current sensor pattern after the incremental turn.
         sensor_data = sensor.get_track_sensor_pattern()
+
+        # Determine if the sensor readings match the expected pattern:
+        # For a left turn, expect the left sensor active and the front sensor inactive.
+        # For a right turn, expect the right sensor active and the front sensor inactive.
         if turn_type == 'left':
-            if sensor_data['left'] == 1 and sensor_data['front'] == 0:
-                consecutive_count += 1
-            else:
-                consecutive_count = 0
-        elif turn_type == 'right':
-            if sensor_data['right'] == 1 and sensor_data['front'] == 0:
-                consecutive_count += 1
-            else:
-                consecutive_count = 0
-        if consecutive_count >= 3:
-            print(f"{turn_type.capitalize()} turn complete based on sensor shift.")
-            return
-    print("Turn timeout reached without clear sensor shift.")
+            expected = sensor_data.get('left') == 1 and sensor_data.get('front') == 0
+        else:  # turn_type == 'right'
+            expected = sensor_data.get('right') == 1 and sensor_data.get('front') == 0
+
+        # If the expected pattern is seen, record when it started
+        if expected:
+            if pattern_stable_start is None:
+                pattern_stable_start = time.time()
+            # If the pattern remains stable for at least stable_time, finish turning.
+            elif time.time() - pattern_stable_start >= stable_time:
+                print(f"{turn_type.capitalize()} turn complete based on stable sensor pattern.")
+                return
+        else:
+            # Reset the stability timer if the expected pattern is lost.
+            pattern_stable_start = None
+
+        time.sleep(increment)
+
+    print("Turn timeout reached without achieving a stable sensor pattern.")
+
 
 def run_navigation(motors, odom):
     """
