@@ -1,6 +1,7 @@
 from machine import Pin, PWM
 from utime import sleep
 
+
 # Define actuator class
 class Actuator:
     def __init__(self):
@@ -17,7 +18,7 @@ class Actuator:
         self.m1Dir.value(1)
         self.pwm1.duty_u16(int(65535*30/100))
         
-# Testing actuator(can be deleted later)
+# once a color detected, control the actuator
 actuator=Actuator()
 while True:
      actuator.Forward()
