@@ -14,7 +14,7 @@ class Motor1:
         self.pwm1.duty_u16(int(65535*100/100)) # speed range 0-100 motor 1
     def Reverse(self):
         self.m1Dir.value(1)
-        self.pwm1.duty_u16(int(65535*30/100))
+        self.pwm1.duty_u16(int(65535*100/100))
         
 class Motor2:
     def __init__(self):
@@ -29,6 +29,6 @@ class Motor2:
         self.pwm1.duty_u16(int(65535*100/100)) # speed range 0-100 motor 1
     def Reverse(self):
         self.m1Dir.value(1)
-        self.pwm1.duty_u16(int(65535*30/100))
+        self.pwm1.duty_u16(int(65535*100/100))
 ###
 
