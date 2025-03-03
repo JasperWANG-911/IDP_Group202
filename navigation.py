@@ -163,15 +163,19 @@ def run_navigation(motors, odom):
     The vehicle begins at node 1 and proceeds to each target in TARGET_ROUTE.
     """
     current_node = 1
+    visited = [current_node]  # Record the visited nodes to prevent repeated counting.
     target_index = 0
     num_targets = len(TARGET_ROUTE)
     
     while target_index < num_targets:
         target = TARGET_ROUTE[target_index]
         
-        # If the current node is the target, update to the next target.
+        # If the current node is the target, record it (if not already recorded)
+        # and update to the next target.
         if current_node == target:
             print(f"Reached target node: {target}")
+            if visited[-1] != target:
+                visited.append(target)
             target_index += 1
             continue
         
@@ -179,7 +183,7 @@ def run_navigation(motors, odom):
         next_node = get_next_node(current_node, target)
         print(f"Current node: {current_node}, Next node: {next_node}, Target: {target}")
         
-        # Determine desired turn direction from graph edge info.
+        # Determine the desired turn direction based on graph edge information.
         edge_dir = get_edge_direction(current_node, next_node)
         if edge_dir is None:
             print(f"Could not determine direction from {current_node} to {next_node}. Moving straight.")
@@ -187,26 +191,24 @@ def run_navigation(motors, odom):
         else:
             desired_direction = direction_map[edge_dir]
         
-        # Compute the required turn type.
+        # Compute the required turn type based on current orientation.
         turn_type = compute_turn_type(odom.vehicle_orientation, desired_direction)
         print(f"Vehicle orientation: {odom.vehicle_orientation}, Desired direction: {desired_direction}, Turn: {turn_type}")
         
-        # Perform sensor check at the node.
+        # Perform a sensor check at the current node.
         check_node_sensor(current_node, odom.vehicle_orientation, turn_type)
         
-        # Execute movement based on the turn type.
+        # Execute movement based on the computed turn type.
         if turn_type == 'straight':
             motors.move_forward(duration=0.5)
             odom.update_position('front')
         elif turn_type == 'left':
             turn_until_shift(motors, 'left', increment=0.1, timeout=3)
-            # Update orientation immediately after turn, before moving forward.
             odom.update_orientation('left')
             motors.move_forward(duration=0.5)
             odom.update_position('front')
         elif turn_type == 'right':
             turn_until_shift(motors, 'right', increment=0.1, timeout=3)
-            # Update orientation immediately after turn, before moving forward.
             odom.update_orientation('right')
             motors.move_forward(duration=0.5)
             odom.update_position('front')
@@ -214,8 +216,12 @@ def run_navigation(motors, odom):
             motors.move_backward(duration=0.5)
             odom.update_position('rear')
         
-        # Update the current node after executing movement.
-        current_node = next_node
+        # Update the current node only if it has changed and record it to avoid duplicates.
+        if next_node != current_node:
+            current_node = next_node
+            if visited[-1] != current_node:
+                visited.append(current_node)
         time.sleep(0.1)
     
     print("Navigation complete. All target nodes reached.")
+
