@@ -1,6 +1,7 @@
 from machine import Pin, PWM
 from utime import sleep
-
+import Other_Sensor
+import 
 
 # Define actuator class
 class Actuator:
@@ -20,9 +21,34 @@ class Actuator:
         
 # once a color detected, control the actuator
 actuator=Actuator()
-while True:
-     actuator.Forward()
-     sleep(5)
-     actuator.Reverse()
-     sleep(5)
+sensor = Other_Sensor.Sensors()
+
+def grab_the_box():
+    """
+    Grabs the box by performing the following steps:
+    1. Stop the vehicle.
+    2. Extend the actuator to engage the box.
+    3. Move the vehicle forward to position the actuator.
+    4. Retract the actuator to grab the box.
+    5. Move the vehicle backward to complete the operation.
+    """
+    # Stop the vehicle in front of the box
+    motor.off()
+
+    # Extend the actuator
+    actuator.Forward()
+    sleep(5)  # Adjust the extension time as needed
+    actuator.off()
+
+    # Move the vehicle forward to reach the box
+    motor.move_forward(duration=5)  # Adjust the forward movement duration as needed
+
+    # Retract the actuator to grab the box
+    actuator.Reverse()
+    sleep(1)  # Adjust the retraction time as needed
+    actuator.off()
+
+    # Move the vehicle backward to clear the box
+    motor.move_backward(duration=5)  # Adjust the backward movement duration as needed
+
 
