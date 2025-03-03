@@ -1,7 +1,8 @@
 import time
-from graph_classes import graph  # Use the new graph structure :contentReference[oaicite:0]{index=0}
+from graph_classes import graph  # Uses our graph structure
 import sensor_for_main as sensor  # Sensor functions are provided by sensor_for_main.py
 import odometry as odom
+from PID_concept import Control  # Import our PID controller
 
 # Predetermined route: after starting at node 1, visit these nodes in order.
 TARGET_ROUTE = ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']
@@ -10,11 +11,6 @@ TARGET_ROUTE = ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']
 direction_map = {'N': 0, 'E': 1, 'S': 2, 'W': 3}
 
 def get_edge_direction(current_node, next_node):
-    """
-    Retrieve the cardinal direction (as a letter) from current_node to next_node
-    based on the graph edge information.
-    Returns one of 'N', 'E', 'S', or 'W' or None if not found.
-    """
     if current_node not in graph.nodes:
         return None
     node_obj = graph.nodes[current_node]
@@ -24,23 +20,12 @@ def get_edge_direction(current_node, next_node):
     return None
 
 def get_next_node(current_node, target):
-    """
-    Compute the shortest path from current_node to target using Dijkstra's algorithm,
-    then return the immediate next node on that path.
-    """
     path, distance = graph.dijkstra(current_node, target)
     if path is None or len(path) < 2:
-        # Already at target or no path found
         return current_node
-    # The path list begins with current_node; return the second element.
     return path[1]
 
 def compute_turn_type(current_orientation, desired_direction):
-    """
-    Compare the vehicle's current numeric orientation with the desired direction (numeric)
-    and determine the turn type needed.
-    Returns one of: 'straight', 'left', 'right', or 'rear'.
-    """
     diff = (desired_direction - current_orientation) % 4
     if diff == 0:
         return 'straight'
@@ -53,14 +38,6 @@ def compute_turn_type(current_orientation, desired_direction):
     return 'straight'
 
 def expected_sensor_pattern(node, current_orientation, candidate_turn_type):
-    """
-    Return the expected track sensor pattern for a given node.
-    For simplicity, this function assumes:
-      - Node 1: no sensor is active.
-      - Special nodes (X1, X2, X3, X4): all sensors active.
-      - For nodes 'RY' and 'BG', no sensor check is applied.
-    Modify as needed for your hardware.
-    """
     if node == 1:
         return {'front': 0, 'right': 0, 'rear': 0, 'left': 0}
     if node in ['RY', 'BG']:
@@ -70,10 +47,6 @@ def expected_sensor_pattern(node, current_orientation, candidate_turn_type):
     return None
 
 def check_node_sensor(node, current_orientation, candidate_turn_type):
-    """
-    Compare the actual sensor readings with the expected pattern.
-    Prints a warning if there is a mismatch.
-    """
     expected = expected_sensor_pattern(node, current_orientation, candidate_turn_type)
     if expected is None:
         return
@@ -85,43 +58,22 @@ def check_node_sensor(node, current_orientation, candidate_turn_type):
         print("Sensor readings at node", node, "match expected pattern.")
 
 def turn_until_shift(motors, turn_type, increment=0.1, timeout=3):
-    """
-    Turn in small increments until the front path is stably detected.
-    If the front sensor is active at the start, the robot will turn until the
-    front sensor reading is lost and then re-detected stably.
-
-    Parameters:
-      - motors: MotorPair instance controlling the robot.
-      - turn_type: 'left' or 'right' indicating the direction to turn.
-      - increment: Duration (in seconds) for each incremental motor command (used as the polling interval).
-      - timeout: Maximum time (in seconds) to attempt the turn before giving up.
-    """
-    import time
     start_time = time.time()
-    stable_time = 0.2  # Duration the sensor pattern must remain stable
+    stable_time = 0.2
     pattern_stable_start = None
-
-    # Get the initial sensor reading for the front sensor
     initial_sensor_data = sensor.get_track_sensor_pattern()
     initial_front = initial_sensor_data.get('front') == 1
-
-    # This flag indicates whether the front sensor has been lost (only needed if it was initially detected)
     lost_front = False
 
     while time.time() - start_time < timeout:
-        # Execute a small incremental turn based on the requested direction.
         if turn_type == 'left':
             motors.turn_left(duration=increment)
         elif turn_type == 'right':
             motors.turn_right(duration=increment)
         else:
             raise ValueError("Invalid turn_type. Use 'left' or 'right'.")
-
-        # Read the current sensor pattern after the incremental turn.
         sensor_data = sensor.get_track_sensor_pattern()
         current_front = sensor_data.get('front') == 1
-
-        # If the front sensor was not detected initially, complete turn when front is stably detected.
         if not initial_front:
             if current_front:
                 if pattern_stable_start is None:
@@ -130,15 +82,12 @@ def turn_until_shift(motors, turn_type, increment=0.1, timeout=3):
                     print("Turn complete: front path detected.")
                     return
             else:
-                # Reset the stability timer if the front sensor reading is lost.
                 pattern_stable_start = None
         else:
-            # If the front sensor was detected initially, first wait for it to be lost.
             if not lost_front:
                 if not current_front:
-                    lost_front = True  # Front sensor is lost, now waiting for re-detection.
+                    lost_front = True
             else:
-                # After front sensor is lost, wait for a stable re-detection.
                 if current_front:
                     if pattern_stable_start is None:
                         pattern_stable_start = time.time()
@@ -146,32 +95,52 @@ def turn_until_shift(motors, turn_type, increment=0.1, timeout=3):
                         print("Turn complete: front path re-detected after being lost.")
                         return
                 else:
-                    # Reset the stability timer if the front sensor reading is lost again.
                     pattern_stable_start = None
-
         time.sleep(increment)
-
     print("Turn timeout reached without achieving a stable front sensor detection.")
 
-
+def correct_orientation(motors, pid_control, correction_duration=0.5, threshold=1):
+    """
+    Use the PID controller to correct the robot's orientation.
+    Over a short correction period, read the COM x-error from the PID controller.
+    If the error exceeds the threshold:
+      - If error > threshold, the robot is too far to the right so turn left.
+      - If error < -threshold, the robot is too far to the left so turn right.
+    Otherwise, proceed forward in small increments.
+    """
+    start_time = time.time()
+    while time.time() - start_time < correction_duration:
+        pos = pid_control.get_pos()
+        if pos is None:
+            break  # No sensor data available
+        error = pid_control.get_error(pos)
+        if error > threshold:
+            print("PID correction: turning left (error:", error,")")
+            motors.turn_left(duration=0.05)
+        elif error < -threshold:
+            print("PID correction: turning right (error:", error,")")
+            motors.turn_right(duration=0.05)
+        else:
+            # Within threshold; move forward a short bit
+            motors.move_forward(duration=0.05)
+        time.sleep(0.05)
 
 def run_navigation(motors, odom):
     """
     Main navigation loop using the predetermined route.
-    'motors' is an instance of MotorPair.
-    'odom' is an instance managing odometry (vehicle position and orientation).
     The vehicle begins at node 1 and proceeds to each target in TARGET_ROUTE.
+    Now incorporates an orientation correction phase using a PID controller.
     """
+    # Instantiate a PID controller using our sensor interface.
+    pid_control = Control(sensor)
+    
     current_node = 1
-    visited = [current_node]  # Record the visited nodes to prevent repeated counting.
+    visited = [current_node]
     target_index = 0
     num_targets = len(TARGET_ROUTE)
     
     while target_index < num_targets:
         target = TARGET_ROUTE[target_index]
-        
-        # If the current node is the target, record it (if not already recorded)
-        # and update to the next target.
         if current_node == target:
             print(f"Reached target node: {target}")
             if visited[-1] != target:
@@ -179,11 +148,9 @@ def run_navigation(motors, odom):
             target_index += 1
             continue
         
-        # Compute the next node on the shortest path from current_node to target.
         next_node = get_next_node(current_node, target)
         print(f"Current node: {current_node}, Next node: {next_node}, Target: {target}")
         
-        # Determine the desired turn direction based on graph edge information.
         edge_dir = get_edge_direction(current_node, next_node)
         if edge_dir is None:
             print(f"Could not determine direction from {current_node} to {next_node}. Moving straight.")
@@ -191,15 +158,14 @@ def run_navigation(motors, odom):
         else:
             desired_direction = direction_map[edge_dir]
         
-        # Compute the required turn type based on current orientation.
         turn_type = compute_turn_type(odom.vehicle_orientation, desired_direction)
-        print(f"Vehicle orientation: {odom.vehicle_orientation}, Desired direction: {desired_direction}, Turn: {turn_type}")
+        print(f"Vehicle orientation: {odom.vehicle_orientation}, Desired: {desired_direction}, Turn: {turn_type}")
         
-        # Perform a sensor check at the current node.
         check_node_sensor(current_node, odom.vehicle_orientation, turn_type)
         
-        # Execute movement based on the computed turn type.
         if turn_type == 'straight':
+            # Instead of a simple forward move, incorporate a PID-based orientation correction.
+            correct_orientation(motors, pid_control, correction_duration=0.5, threshold=1)
             motors.move_forward(duration=0.5)
             odom.update_position('front')
         elif turn_type == 'left':
@@ -216,7 +182,6 @@ def run_navigation(motors, odom):
             motors.move_backward(duration=0.5)
             odom.update_position('rear')
         
-        # Update the current node only if it has changed and record it to avoid duplicates.
         if next_node != current_node:
             current_node = next_node
             if visited[-1] != current_node:
@@ -224,4 +189,3 @@ def run_navigation(motors, odom):
         time.sleep(0.1)
     
     print("Navigation complete. All target nodes reached.")
-
