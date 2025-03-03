@@ -86,9 +86,9 @@ def check_node_sensor(node, current_orientation, candidate_turn_type):
 
 def turn_until_shift(motors, turn_type, increment=0.1, timeout=3):
     """
-    Turn in small increments until a 90° shift is detected based on sensor readings.
-    This improved version requires that the expected sensor pattern remains stable for a short
-    duration (stable_time) before considering the turn complete.
+    Turn in small increments until the front path is stably detected.
+    If the front sensor is active at the start, the robot will turn until the
+    front sensor reading is lost and then re-detected stably.
 
     Parameters:
       - motors: MotorPair instance controlling the robot.
@@ -98,8 +98,15 @@ def turn_until_shift(motors, turn_type, increment=0.1, timeout=3):
     """
     import time
     start_time = time.time()
-    stable_time = 0.2  # Duration the expected sensor pattern must remain stable
+    stable_time = 0.2  # Duration the sensor pattern must remain stable
     pattern_stable_start = None
+
+    # Get the initial sensor reading for the front sensor
+    initial_sensor_data = sensor.get_track_sensor_pattern()
+    initial_front = initial_sensor_data.get('front') == 1
+
+    # This flag indicates whether the front sensor has been lost (only needed if it was initially detected)
+    lost_front = False
 
     while time.time() - start_time < timeout:
         # Execute a small incremental turn based on the requested direction.
@@ -112,30 +119,40 @@ def turn_until_shift(motors, turn_type, increment=0.1, timeout=3):
 
         # Read the current sensor pattern after the incremental turn.
         sensor_data = sensor.get_track_sensor_pattern()
+        current_front = sensor_data.get('front') == 1
 
-        # Determine if the sensor readings match the expected pattern:
-        # For a left turn, expect the left sensor active and the front sensor inactive.
-        # For a right turn, expect the right sensor active and the front sensor inactive.
-        if turn_type == 'left':
-            expected = sensor_data.get('left') == 1 and sensor_data.get('front') == 0
-        else:  # turn_type == 'right'
-            expected = sensor_data.get('right') == 1 and sensor_data.get('front') == 0
-
-        # If the expected pattern is seen, record when it started
-        if expected:
-            if pattern_stable_start is None:
-                pattern_stable_start = time.time()
-            # If the pattern remains stable for at least stable_time, finish turning.
-            elif time.time() - pattern_stable_start >= stable_time:
-                print(f"{turn_type.capitalize()} turn complete based on stable sensor pattern.")
-                return
+        # If the front sensor was not detected initially, complete turn when front is stably detected.
+        if not initial_front:
+            if current_front:
+                if pattern_stable_start is None:
+                    pattern_stable_start = time.time()
+                elif time.time() - pattern_stable_start >= stable_time:
+                    print("Turn complete: front path detected.")
+                    return
+            else:
+                # Reset the stability timer if the front sensor reading is lost.
+                pattern_stable_start = None
         else:
-            # Reset the stability timer if the expected pattern is lost.
-            pattern_stable_start = None
+            # If the front sensor was detected initially, first wait for it to be lost.
+            if not lost_front:
+                if not current_front:
+                    lost_front = True  # Front sensor is lost, now waiting for re-detection.
+            else:
+                # After front sensor is lost, wait for a stable re-detection.
+                if current_front:
+                    if pattern_stable_start is None:
+                        pattern_stable_start = time.time()
+                    elif time.time() - pattern_stable_start >= stable_time:
+                        print("Turn complete: front path re-detected after being lost.")
+                        return
+                else:
+                    # Reset the stability timer if the front sensor reading is lost again.
+                    pattern_stable_start = None
 
         time.sleep(increment)
 
-    print("Turn timeout reached without achieving a stable sensor pattern.")
+    print("Turn timeout reached without achieving a stable front sensor detection.")
+
 
 
 def run_navigation(motors, odom):
