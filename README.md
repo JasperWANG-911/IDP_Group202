@@ -1,6 +1,6 @@
 # IDP Navigation System
 
-This project implements a navigation system for a Raspberry Pi–based robot using modular code. The system integrates graph‐based path planning, sensor‐based orientation control (using PID), and turning logic to guide the robot through a predetermined route. The design is fully tunable from the main script.
+This project implements a navigation system for a Raspberry Pi–based robot using modular code. The system integrates graph‐based path planning, sensor‐based orientation control (using PID), and turning logic to guide the robot through a predetermined route. The design is fully tunable from the main script. Test scripts are included in fundamental modules.
 
 ## Module Descriptions
 
