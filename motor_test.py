@@ -78,8 +78,8 @@ class MotorPair:
         self.left.off()
         self.right.off()
 
-    def turn_left(self, duration=0.5):
-        print("MotorPair: Turning left")
+    def turn_right(self, duration=0.5):
+        print("MotorPair: Turning right")
         # Left motor in reverse, right motor forward for an in-place turn
         self.left.Reverse()
         self.right.Forward()
@@ -87,8 +87,8 @@ class MotorPair:
         self.left.off()
         self.right.off()
 
-    def turn_right(self, duration=0.5):
-        print("MotorPair: Turning right")
+    def turn_left(self, duration=0.5):
+        print("MotorPair: Turning left")
         # Left motor forward, right motor in reverse for an in-place turn
         self.left.Forward()
         self.right.Reverse()
