@@ -1,3 +1,6 @@
+# IDP Navigation System
+
+This project implements a navigation system for a Raspberry Pi–based robot using modular code. The system integrates graph‐based path planning, sensor‐based orientation control (using PID), and turning logic to guide the robot through a predetermined route. The design is fully tunable from the main script.
 
 ## Module Descriptions
 
@@ -63,4 +66,30 @@ The main entry point that:
     M --> O
     N --> O
     O --> C
+
+
+## Usage Instructions
+
+1. **Configuration:**  
+   Modify the tunable parameters in `main.py`:
+   - **target_route:** List of target nodes (default: `['X1', 'X2', 'X3', 'X4', 'RY', 'BG']`).
+   - **base_speed:** Default speed (e.g., 75).
+   - **pid_params:** PID constants as a tuple `(k_p, k_i, k_d)`.
+
+2. **Running the System:**  
+   Execute `main.py` on your Raspberry Pi. The main script initializes the motors, creates a `Navigation` instance with the provided parameters, and runs the navigation routine.
+
+3. **Tuning:**  
+   Adjust the PID parameters and base speed as needed to match your hardware dynamics.
+
+## Summary
+
+- **Graph & Pathfinder:**  
+  Provide route planning via Dijkstra’s algorithm.
+- **Orientation Control:**  
+  Uses PID to adjust motor speeds based on sensor feedback.
+- **Turning & Navigation:**  
+  Integrate turning maneuvers (with continuous orientation updates) and reverse moves with a tuning phase.
+- **Main Script:**  
+  Configurable target route, base speed, and PID parameters make it easy to tune the system.
 
