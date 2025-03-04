@@ -23,7 +23,7 @@ class MotorPair:
         self.left.off()
         self.right.off()
 
-    def turn_left(self, duration=0.5):
+    def turn_right(self, duration=0.5):
         # Turn on the spot to the left (left motor reverse, right motor forward)
         self.left.Reverse()
         self.right.Forward()
@@ -31,7 +31,7 @@ class MotorPair:
         self.left.off()
         self.right.off()
 
-    def turn_right(self, duration=0.5):
+    def turn_left(self, duration=0.5):
         # Turn on the spot to the right (left motor forward, right motor reverse)
         self.left.Forward()
         self.right.Reverse()

@@ -29,7 +29,7 @@ class Motor1:
         # Reverse direction: set direction pin to 1
         self.m1Dir.value(1)
         # Reverse at 30% duty cycle for safer backward motion
-        self.pwm1.duty_u16(int(65535 * 0.3))
+        self.pwm1.duty_u16(int(65535 * 1))
 
 
 class Motor2:
@@ -51,7 +51,7 @@ class Motor2:
 
     def Reverse(self):
         self.m1Dir.value(1)
-        self.pwm1.duty_u16(int(65535 * 0.3))
+        self.pwm1.duty_u16(int(65535 * 1))
 
 
 class MotorPair:
@@ -104,8 +104,8 @@ def main():
     print("Starting hardware motor test.")
     
     # Initialize motors and create a motor pair
-    left_motor = Motor1()
-    right_motor = Motor2()
+    left_motor = Motor2()
+    right_motor = Motor1()
     motors = MotorPair(left_motor, right_motor)
     
     # Test move forward
