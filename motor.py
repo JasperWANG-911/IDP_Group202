@@ -120,15 +120,20 @@ if __name__ == "__main__":
     # Create a MotorPair object for coordinated control
     car = MotorPair(left_motor, right_motor)
     
+    # List of speeds (as percentages) to test
+    test_speeds = [50, 75, 100]
+    
     try:
-        print("Moving forward")
-        car.move_forward(duration=1, speed=75)
-        print("Turning left")
-        car.turn_left(duration=1, speed=75)
-        print("Moving backward")
-        car.move_backward(duration=1, speed=75)
-        print("Turning right")
-        car.turn_right(duration=1, speed=75)
+        for speed in test_speeds:
+            print(f"\n--- Testing at {speed}% speed ---")
+            print("Moving forward")
+            car.move_forward(duration=1, speed=speed)
+            print("Turning left")
+            car.turn_left(duration=1, speed=speed)
+            print("Moving backward")
+            car.move_backward(duration=1, speed=speed)
+            print("Turning right")
+            car.turn_right(duration=1, speed=speed)
     except KeyboardInterrupt:
         # Allow user to exit the program using Ctrl+C
         pass
