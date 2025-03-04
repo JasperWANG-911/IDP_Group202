@@ -44,3 +44,23 @@ The main entry point that:
 - Creates an instance of the `Navigation` class with these parameters.
 - Runs the navigation routine.
 
+## Flowchart
+
+    A[main.py] --> B[Navigation Class]
+    B --> C[Navigation Loop]
+    C --> D{Is current node equal to target?}
+    D -- Yes --> E[Mark node reached]
+    E --> F{Is it a marking node?}
+    F -- Yes --> G[Pause for 3 sec and execute reverse maneuver]
+    F -- No --> H[Proceed to next target]
+    D -- No --> I[Determine next node via Dijkstra]
+    I --> J[Compute desired turn type]
+    J --> K{Turn type}
+    K -- "straight" --> L[Update orientation (forward) and move forward]
+    K -- "left/right" --> M[Call turn_until_shift() with orientation updates, then move forward]
+    K -- "rear" --> N[Move backward to reach next node and stop]
+    L --> O[Update current node and loop]
+    M --> O
+    N --> O
+    O --> C
+
