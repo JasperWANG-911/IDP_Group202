@@ -8,8 +8,8 @@ import navigation
 
 def main():
     # Initialize motor pair and odometry state
-    left_motor = Motor1()
-    right_motor = Motor2()
+    left_motor = Motor2()
+    right_motor = Motor1()
     motors = MotorPair(left_motor, right_motor)
     odom = Odometry()
 
