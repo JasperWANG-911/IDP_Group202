@@ -22,7 +22,7 @@ Offers helper functions:
 
 ### turning.py
 Contains functions to execute turning maneuvers:
-- `turn_until_shift()`: Increments turning commands while periodically calling the orientation controller’s update so that the robot’s “nose” (center sensors) remains aligned.
+- `turn_until_shift()`: Increments turning commands while periodically calling the orientation controller’s update so that the robot’s "nose" (center sensors) remains aligned.
 - `perform_reverse_turn()`: Executes a reverse maneuver with orientation correction.
 
 ### orientation_control.py
@@ -44,26 +44,3 @@ The main entry point that:
 - Creates an instance of the `Navigation` class with these parameters.
 - Runs the navigation routine.
 
-## Flowchart of Code Structure
-
-Below is a Mermaid flowchart that summarizes the module interactions. (If your GitHub renderer supports Mermaid, it will display; otherwise, you can view it in an online Mermaid editor.)
-
-```mermaid
-flowchart TD
-    A[main.py] --> B[MotorPair (Motor1 & Motor2)]
-    A --> C[Navigation Class]
-    C --> D[Pathfinder Functions<br/>(get_edge_direction, get_next_node, compute_turn_type)]
-    C --> E[Turning Module<br/>(turn_until_shift, perform_reverse_turn)]
-    C --> F[OrientationController<br/>(PID, sensor readings)]
-    F --> G[line_sensor.py<br/>(LineSensors)]
-    
-    subgraph "Navigation Flow"
-       C --> H[Navigation Loop]
-       H --> I{Is current node target?}
-       I -- Yes --> J[Mark node: pause & reverse maneuver<br/>(if marking node)]
-       I -- No --> K[Determine next node via Dijkstra]
-       K --> L[Compute turn type]
-       L -- "straight" --> M[Update orientation (forward) and move forward]
-       L -- "left/right" --> N[Call turn_until_shift() with orientation updates]
-       L -- "rear" --> O[Move backward, then tune (update orientation) and move forward]
-    end
