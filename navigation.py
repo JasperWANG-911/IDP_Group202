@@ -99,31 +99,73 @@ def turn_until_shift(motors, turn_type, increment=0.1, timeout=3):
         time.sleep(increment)
     print("Turn timeout reached without achieving a stable front sensor detection.")
 
-def correct_orientation(motors, pid_control, correction_duration=0.5, threshold=1):
+def correct_orientation(motors, pid_control, correction_duration=0.5, threshold=1, correction_factor=0.2):
     """
     Use the PID controller to correct the robot's orientation.
-    Over a short correction period, read the COM x-error from the PID controller.
-    If the error exceeds the threshold:
-      - If error > threshold, the robot is too far to the right so turn left.
-      - If error < -threshold, the robot is too far to the left so turn right.
-    Otherwise, proceed forward in small increments.
+    Over a short correction period, this function:
+      - Retrieves the center-of-mass x-position using sensor data.
+      - Computes the PID error based on the x-position.
+      - Adjusts motor speeds proportionally to the error:
+          * If error > threshold (robot too far right), reduce the right motor's speed.
+          * If error < -threshold (robot too far left), reduce the left motor's speed.
+          * If error is within threshold, both motors run at full speed.
+    
+    This method leverages the PID controller defined in PID_concept.py, ensuring consistency
+    with its structure and sensor reading approach.
+    
+    Args:
+      motors: A MotorPair object containing left and right motors.
+      pid_control: A PID controller instance with get_pos() and get_error() methods.
+      correction_duration: Time period (in seconds) over which correction is applied.
+      threshold: Minimum error magnitude to begin proportional speed adjustment.
+      correction_factor: Scaling factor to determine how much the error influences speed reduction.
     """
+    import time  # Import time for timing operations
+
+    # Define full speed duty cycle (using full 100% power)
+    full_speed = int(65535 * 100 / 100)
     start_time = time.time()
+
     while time.time() - start_time < correction_duration:
+        # Retrieve the center-of-mass x-position from sensor data via the PID controller
         pos = pid_control.get_pos()
         if pos is None:
-            break  # No sensor data available
+            # No valid sensor data available; exit the correction loop
+            break
+        
+        # Compute the PID error based on the current x-position
         error = pid_control.get_error(pos)
+
+        # Default: set both motors to move forward at full speed
+        motors.left.Forward()
+        motors.right.Forward()
+
         if error > threshold:
-            print("PID correction: turning left (error:", error,")")
-            motors.turn_left(duration=0.05)
+            # Robot is too far right; reduce right motor speed to steer left.
+            # Compute a proportional reduction factor based on how much error exceeds the threshold.
+            reduction_ratio = min(1.0, correction_factor * (error - threshold))
+            new_right_speed = int(full_speed * (1 - reduction_ratio))
+            print("PID correction: reducing right motor speed to", new_right_speed, "for error:", error)
+            motors.right.pwm1.duty_u16(new_right_speed)
+            motors.left.pwm1.duty_u16(full_speed)
         elif error < -threshold:
-            print("PID correction: turning right (error:", error,")")
-            motors.turn_right(duration=0.05)
+            # Robot is too far left; reduce left motor speed to steer right.
+            reduction_ratio = min(1.0, correction_factor * ((-error) - threshold))
+            new_left_speed = int(full_speed * (1 - reduction_ratio))
+            print("PID correction: reducing left motor speed to", new_left_speed, "for error:", error)
+            motors.left.pwm1.duty_u16(new_left_speed)
+            motors.right.pwm1.duty_u16(full_speed)
         else:
-            # Within threshold; move forward a short bit
-            motors.move_forward(duration=0.05)
+            # Error is within the acceptable threshold; maintain full speed on both motors.
+            print("PID correction: balanced motion at full speed (error:", error,")")
+            motors.left.pwm1.duty_u16(full_speed)
+            motors.right.pwm1.duty_u16(full_speed)
+        
         time.sleep(0.05)
+    
+    # Stop both motors after the correction period to prevent unintended movement.
+    motors.left.off()
+    motors.right.off()
 
 def run_navigation(motors, odom):
     """
