@@ -24,8 +24,8 @@ class Control:
         '''
         self.sensors = sensors
         self.k_p = 5
-        self.k_i = 5
-        self.k_d = 5
+        self.k_i = 0
+        self.k_d = 0
         self.errI = 0
         self.prevPos = 0
 
