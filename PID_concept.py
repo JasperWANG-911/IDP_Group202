@@ -4,7 +4,6 @@ Let position be 0 along the centre-line of the robot.
 '''
 
 import sensor_for_main as sfm
-import motor_pair
 
 # Positions of tracker sensors (mm)
 posf = (0, 10)
