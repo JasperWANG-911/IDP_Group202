@@ -80,7 +80,7 @@ The main entry point that:
    Execute `main.py` on your Raspberry Pi. The main script initializes the motors, creates a `Navigation` instance with the provided parameters, and runs the navigation routine.
 
 3. **Tuning:**  
-   Adjust the PID parameters and base speed as needed to match your hardware dynamics.
+   Adjust the PID parameters and base speed as needed to match the hardware dynamics.
 
 ## Summary
 
