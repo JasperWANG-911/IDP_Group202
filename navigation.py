@@ -9,7 +9,6 @@ class Navigation:
     def __init__(self, motors, target_route=None, base_speed=75, pid_params=(20, 0.5, 10)):
         """
         Initialize the Navigation class with tunable parameters.
-
         Args:
             motors: MotorPair instance controlling the robot.
             target_route (list): A list of target nodes (default: ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']).
@@ -22,14 +21,32 @@ class Navigation:
         k_p, k_i, k_d = pid_params
         self.orientation_controller = OrientationController(base_speed=base_speed, k_p=k_p, k_i=k_i, k_d=k_d)
 
+    def controlled_move_forward(self, duration, update_interval=0.1):
+        """
+        Drives forward for the specified duration while continuously updating orientation control.
+        """
+        start_time = time.time()
+        while time.time() - start_time < duration:
+            self.orientation_controller.update()  # continuously update PID control
+            time.sleep(update_interval)
+
+    def controlled_move_backward(self, duration, update_interval=0.1):
+        """
+        Drives backward for the specified duration while continuously updating reverse orientation control.
+        """
+        start_time = time.time()
+        while time.time() - start_time < duration:
+            self.orientation_controller.update_reverse()  # continuously update reverse PID control
+            time.sleep(update_interval)
+
     def run(self):
         """
         Main navigation loop integrating the pathfinder and turning modules.
-        New rules:
-          a. At node 1 (start/finish), drive forward; if all sensors are active (start/finish line),
-             print a message and drive forward slightly.
+        Special rules:
+          a. At node 1 (start/finish), if all sensors are active, drive forward slightly.
           b. At marking nodes, if all sensors are active, pause for 3 seconds.
-          c. For reverse moves, simply drive backward, then perform a tuning phase before moving forward.
+          c. For reverse moves, drive backward continuously (with reverse updates) until reaching the next node.
+             Then stop and let the loop decide the next turn.
         Returns:
             List of visited nodes.
         """
@@ -42,7 +59,7 @@ class Navigation:
         sp = self.sensor_instance.read_all()
         if all(val == 1 for val in sp.values()):
             print("Start line detected at node 1.")
-            self.motors.move_forward(duration=0.5)  # Drive forward a short distance
+            self.controlled_move_forward(0.5)
 
         while target_index < num_targets:
             target = self.target_route[target_index]
@@ -55,11 +72,12 @@ class Navigation:
                         print(f"Marking line detected at {target}. Pausing for 3 seconds.")
                         time.sleep(3)
                     print("Executing reverse maneuver to leave marking node.")
-                    self.motors.move_backward(duration=0.5)
+                    # Reverse maneuver without turning:
+                    self.controlled_move_backward(0.5)
                 # For finish (node 1), drive forward slightly and stop.
                 if target == 1:
                     print("Finish line detected. Moving forward a short distance and stopping.")
-                    self.motors.move_forward(duration=0.5)
+                    self.controlled_move_forward(0.5)
                     break
                 target_index += 1
                 continue
@@ -69,12 +87,12 @@ class Navigation:
 
             edge_dir = get_edge_direction(current_node, next_node)
             if edge_dir is None:
-                desired_direction = 0  # Default orientation (e.g., North)
+                desired_direction = 0  # Default (North)
             else:
                 mapping = {'N': 0, 'E': 1, 'S': 2, 'W': 3}
                 desired_direction = mapping.get(edge_dir, 0)
 
-            # For this simulation, assume current orientation is 0 (North).
+            # For simulation, assume current orientation is 0 (North).
             current_orientation = 0
             turn_type = compute_turn_type(current_orientation, desired_direction)
             print(f"Current Orientation: {current_orientation}, Desired: {desired_direction}, Turn: {turn_type}")
@@ -82,8 +100,7 @@ class Navigation:
             check_node_sensor(self.sensor_instance, current_node)
 
             if turn_type == 'straight':
-                self.orientation_controller.update()  # Forward orientation correction
-                self.motors.move_forward(duration=0.5)
+                self.controlled_move_forward(0.5)
                 current_node = next_node
                 if visited[-1] != current_node:
                     visited.append(current_node)
@@ -93,24 +110,19 @@ class Navigation:
                 sp = self.sensor_instance.read_all()
                 if all(val == 1 for val in sp.values()):
                     print(f"Sensor pattern confirmed after {turn_type} turn (marking line detected).")
-                    self.motors.move_forward(duration=0.5)
+                    self.controlled_move_forward(0.5)
                     current_node = next_node
                     if visited[-1] != current_node:
                         visited.append(current_node)
                 else:
                     print(f"Sensor pattern incorrect after {turn_type} turn; not updating node.")
             elif turn_type == 'rear':
-                # Reverse move without turning.
                 print("Executing reverse move (without turning) to reach next node.")
-                self.motors.move_backward(duration=0.5)
+                self.controlled_move_backward(0.5)
                 current_node = next_node
                 if visited[-1] != current_node:
                     visited.append(current_node)
-                # Tuning phase after reverse.
-                print("Performing tuning after reverse move.")
-                self.orientation_controller.update()
-                self.motors.move_forward(duration=0.5)
-
+                print("Reverse move complete; new node reached.")
             time.sleep(0.1)
         
         print("Navigation complete. All target nodes reached.")
