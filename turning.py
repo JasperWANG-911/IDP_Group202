@@ -1,7 +1,7 @@
 # Turning.py
 import time
 
-def turn_until_shift(motors, sensor_instance, orientation_controller, turn_type, increment=0.1, timeout=3):
+def turn_until_shift(motors, sensor_instance, orientation_controller, turn_type, increment=0.1, timeout=5):
     """
     Turn the robot (left or right) until the sensor readings indicate proper alignment.
     During the turning maneuver, the orientation controller is updated periodically so that the
@@ -25,9 +25,9 @@ def turn_until_shift(motors, sensor_instance, orientation_controller, turn_type,
     
     while time.time() - start_time < timeout:
         if turn_type == 'left':
-            motors.turn_left(duration=increment)
+            motors.turn_left(duration=increment, speed=50)
         elif turn_type == 'right':
-            motors.turn_right(duration=increment)
+            motors.turn_right(duration=increment, speed=50)
         else:
             raise ValueError("Invalid turn_type. Use 'left' or 'right'.")
         
@@ -36,9 +36,10 @@ def turn_until_shift(motors, sensor_instance, orientation_controller, turn_type,
         
         sensor_data = sensor_instance.read_all()
         if (sensor_data.get('center_left') == desired_pattern['center_left'] and
-            sensor_data.get('center_right') == desired_pattern['center_right'] and
-            sensor_data.get('left_side') == desired_pattern['left_side'] and
-            sensor_data.get('right_side') == desired_pattern['right_side']):
+            sensor_data.get('center_right') == desired_pattern['center_right'] #and
+            #sensor_data.get('left_side') == desired_pattern['left_side'] and
+            #sensor_data.get('right_side') == desired_pattern['right_side']
+            ):
             if pattern_stable_start is None:
                 pattern_stable_start = time.time()
             elif time.time() - pattern_stable_start >= stable_time:
