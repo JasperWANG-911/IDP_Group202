@@ -49,23 +49,8 @@ The main entry point that:
 
 ## Flowchart
 
-    A[main.py] --> B[Navigation Class]
-    B --> C[Start Navigation Loop]
-    C --> D{Is current node = target?}
-    D -- Yes --> E[Mark node as reached]
-    E --> F{Is it a marking node?}
-    F -- Yes --> G[Pause 3 sec & reverse maneuver]
-    F -- No --> H[Proceed to next target]
-    D -- No --> I[Determine next node via Dijkstra]
-    I --> J[Compute desired turn type]
-    J --> K{Turn type?}
-    K -- Straight --> L[Update orientation (forward) & move forward]
-    K -- Left/Right --> M[Execute turning maneuver with orientation updates<br/>(via turn_until_shift) then move forward]
-    K -- Rear --> N[Move backward to reach next node<br/>and then perform tuning (update orientation)]
-    L --> O[Update current node]
-    M --> O
-    N --> O
-    O --> C
+![flowchart](https://github.com/user-attachments/assets/e4d62157-3a40-41b4-9586-691ff210028a)
+
 
 
 
