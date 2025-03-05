@@ -88,7 +88,7 @@ class MotorPair:
         self.left.off()
         self.right.off()
 
-    def turn_right(self, duration=0.5, speed=100):
+    def turn_left(self, duration=0.5, speed=100):
         """
         Turn on the spot by running the left motor forward and the right motor in reverse.
         This results in a right turn.
@@ -99,7 +99,7 @@ class MotorPair:
         self.left.off()
         self.right.off()
 
-    def turn_left(self, duration=0.5, speed=100):
+    def turn_right(self, duration=0.5, speed=100):
         """
         Turn on the spot by running the left motor in reverse and the right motor forward.
         This results in a left turn.
@@ -127,13 +127,13 @@ if __name__ == "__main__":
         for speed in test_speeds:
             print(f"\n--- Testing at {speed}% speed ---")
             print("Moving forward")
-            car.move_forward(duration=1, speed=speed)
+            car.move_forward(duration=3, speed=speed)
             print("Turning left")
-            car.turn_left(duration=1, speed=speed)
+            car.turn_left(duration=3, speed=speed)
             print("Moving backward")
-            car.move_backward(duration=1, speed=speed)
+            car.move_backward(duration=3, speed=speed)
             print("Turning right")
-            car.turn_right(duration=1, speed=speed)
+            car.turn_right(duration=3, speed=speed)
     except KeyboardInterrupt:
         # Allow user to exit the program using Ctrl+C
         pass
