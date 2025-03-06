@@ -4,37 +4,67 @@ from motor import MotorPair, Motor1, Motor2  # Motor2 is left, Motor1 is right
 from line_sensor import LineSensors
 
 class PIDController:
-    def __init__(self, k_p, k_i, k_d):
+    def __init__(self, k_p, k_i, k_d, deriv_window=5, integral_window=10):
         # Initialize PID constants and internal state variables.
         self.k_p = k_p
         self.k_i = k_i
         self.k_d = k_d
-        self.integral = 0.0
-        self.last_error = 0.0
+        # Lists for storing recent error values for smoothing derivative and integral
+        self.error_window = []         # For derivative smoothing
+        self.integral_window = []      # For a moving integral sum
+        self.deriv_window_size = deriv_window
+        self.integral_window_size = integral_window
 
     def compute(self, error):
         """
-        Compute PID correction based on the current error.
-        :param error: The current error value.
-        :return: The PID correction value.
+        Compute PID correction based on the current error using moving average smoothing for the derivative 
+        and a moving window for the integral term.
+        
+        Args:
+            error: The current error value.
+        Returns:
+            The PID correction value.
         """
-        self.integral += error
-        derivative = error - self.last_error
-        self.last_error = error
-        return self.k_p * error + self.k_i * self.integral + self.k_d * derivative
+        # --- Update derivative window ---
+        self.error_window.append(error)
+        if len(self.error_window) > self.deriv_window_size:
+            self.error_window.pop(0)
+        
+        if len(self.error_window) > 1:
+            # Use the average of all previous errors in the window for smoothing.
+            avg_prev = sum(self.error_window[:-1]) / (len(self.error_window) - 1)
+            derivative = error - avg_prev
+        else:
+            derivative = 0.0
+
+        # --- Update integral window ---
+        self.integral_window.append(error)
+        if len(self.integral_window) > self.integral_window_size:
+            self.integral_window.pop(0)
+        integral = sum(self.integral_window)
+
+        # Compute PID output.
+        output = self.k_p * error + self.k_i * integral + self.k_d * derivative
+        return output
 
 def clamp_speed(speed):
     """
     Clamp the motor speed within the range [-100, 100].
-    :param speed: Proposed motor speed.
-    :return: Clamped motor speed.
+    
+    Args:
+        speed: Proposed motor speed.
+    Returns:
+        Clamped motor speed.
     """
     return max(-100, min(100, speed))
 
 def set_motor_speed(motor, speed):
     """
-    Set motor speed. If speed is positive, use forward;
-    if negative, use reverse (with absolute value); if zero, stop.
+    Set motor speed. If speed is positive, use forward; if negative, use reverse (with absolute value); if zero, stop.
+    
+    Args:
+        motor: The motor instance.
+        speed: Desired speed (as a percentage).
     """
     if speed > 0:
         motor.forward(speed)
@@ -45,19 +75,17 @@ def set_motor_speed(motor, speed):
 
 class OrientationController:
     """
-    OrientationController integrates sensor readings, PID control, and motor commands
-    to adjust the robot's heading along a line. It uses two center sensors for error calculation.
-    It supports both forward and reverse control by allowing negative speeds.
+    OrientationController integrates sensor readings, a PID controller, and motor commands
+    to adjust the robot's heading along a line. It uses the two center sensors for error calculation.
+    This implementation uses moving windows for both derivative and integral terms to smooth the PID response.
     """
-    def __init__(self, base_speed=75, k_p=20, k_i=0.5, k_d=10):
+    def __init__(self, base_speed=75, k_p=20, k_i=0.5, k_d=10, deriv_window=5, integral_window=10):
         self.sensors = LineSensors()
         self.left_motor = Motor2()   # Left motor (Motor2)
         self.right_motor = Motor1()  # Right motor (Motor1)
         self.car = MotorPair(self.left_motor, self.right_motor)
-        self.pid = PIDController(k_p, k_i, k_d)
+        self.pid = PIDController(k_p, k_i, k_d, deriv_window, integral_window)
         self.base_speed = base_speed
-        # Last valid error to use when sensor data is absent.
-        self.last_valid_error = 0.0
 
     def get_line_error(self):
         """
@@ -66,7 +94,9 @@ class OrientationController:
           - Both active: 0.0 (aligned)
           - Only center_left active: -1.0 (deviated left)
           - Only center_right active: 1.0 (deviated right)
-          - Both inactive: use last valid error.
+          - Both inactive: use last computed error (implicitly via the PID windows)
+        Returns:
+            The error value.
         """
         sensor_values = self.sensors.read_center()
         left_active = sensor_values.get('center_left', 0)
@@ -79,10 +109,8 @@ class OrientationController:
         elif right_active and not left_active:
             error = 1.0
         else:
-            error = self.last_valid_error
-
-        if left_active or right_active:
-            self.last_valid_error = error
+            # When both are inactive, assume the error remains unchanged.
+            error = self.pid.error_window[-1] if self.pid.error_window else 0.0
 
         return error
 
