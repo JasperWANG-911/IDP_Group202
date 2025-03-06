@@ -1,5 +1,6 @@
 # Navigation.py
 import time
+import machine
 from Pathfinder import get_edge_direction, get_next_node, compute_turn_type, check_node_sensor
 from turning import turn_until_shift, perform_reverse_turn
 from line_sensor import LineSensors
@@ -20,6 +21,16 @@ class Navigation:
         self.target_route = target_route if target_route is not None else ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']
         k_p, k_i, k_d = pid_params
         self.orientation_controller = OrientationController(base_speed=base_speed, k_p=k_p, k_i=k_i, k_d=k_d)
+        # Create an LED object on GP14 for visual indication.
+        self.led = machine.Pin(14, machine.Pin.OUT)
+
+    def flash_led(self, flashes=1, duration=0.5):
+        """Flash the LED a specified number of times."""
+        for _ in range(flashes):
+            self.led.value(1)
+            time.sleep(duration)
+            self.led.value(0)
+            time.sleep(duration)
 
     def controlled_move_forward(self, duration, update_interval=0.1):
         """
@@ -43,8 +54,9 @@ class Navigation:
         """
         Main navigation loop integrating the pathfinder and turning modules.
         Special rules:
-          a. At node 1 (start/finish), if all sensors are active, drive forward slightly.
-          b. At marking nodes, if all sensors are active, pause for 3 seconds.
+          a. At node 1 (start/finish), if all sensors are active, drive forward slightly and flash LED.
+          b. At marking nodes, if all sensors are active, pause for 3 seconds, flash LED,
+             and execute a reverse maneuver.
           c. For reverse moves, drive backward continuously (with reverse updates) until reaching the next node.
              Then stop and let the loop decide the next turn.
         Returns:
@@ -59,12 +71,14 @@ class Navigation:
         sp = self.sensor_instance.read_all()
         if all(val == 1 for val in sp.values()):
             print("Start line detected at node 1.")
+            self.flash_led(flashes=1, duration=0.2)  # Flash LED at start.
             self.controlled_move_forward(0.5)
 
         while target_index < num_targets:
             target = self.target_route[target_index]
             if current_node == target:
                 print(f"Reached target node: {target}")
+                self.flash_led(flashes=1, duration=0.2)  # Flash LED at target node.
                 # At marking nodes, pause and execute reverse maneuver.
                 if target in ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']:
                     sp = self.sensor_instance.read_all()

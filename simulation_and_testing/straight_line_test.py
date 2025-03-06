@@ -21,12 +21,12 @@ def test_straight_line():
     
     # Create an OrientationController with a base speed and PID parameters.
     # These parameters can be tuned for your hardware.
-    orientation_controller = OrientationController(base_speed=75, k_p=20, k_i=0.5, k_d=10)
+    orientation_controller = OrientationController(base_speed=75, k_p=20, k_i=0.5, k_d=10, deriv_window=10, integral_window=10)
     
     print("Starting straight line test. Vehicle should drive forward with continuous orientation control.")
     
     # Duration for the test in seconds.
-    duration = 10  
+    duration = 30  
     start_time = time.time()
     
     # Instead of a single blocking move_forward command,
