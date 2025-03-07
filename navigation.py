@@ -67,9 +67,9 @@ class Navigation:
         target_index = 0
         num_targets = len(self.target_route)
         
-        # At start: if all sensors are active at node 1, assume start line detected.
+        # At start: if at least one side sensor is active at node 1, assume start line detected.
         sp = self.sensor_instance.read_all()
-        if all(val == 1 for val in sp.values()):
+        if sp.get('left_side') == 1 or sp.get('right_side') == 1:
             print("Start line detected at node 1.")
             self.flash_led(flashes=1, duration=0.2)  # Flash LED at start.
             self.controlled_move_forward(0.5)
@@ -82,7 +82,7 @@ class Navigation:
                 # At marking nodes, pause and execute reverse maneuver.
                 if target in ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']:
                     sp = self.sensor_instance.read_all()
-                    if all(val == 1 for val in sp.values()):
+                    if sp.get('left_side') == 1 or sp.get('right_side') == 1:
                         print(f"Marking line detected at {target}. Pausing for 3 seconds.")
                         time.sleep(3)
                     print("Executing reverse maneuver to leave marking node.")

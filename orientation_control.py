@@ -4,7 +4,7 @@ from motor import MotorPair, Motor1, Motor2  # Motor2 is left, Motor1 is right
 from line_sensor import LineSensors
 
 class PIDController:
-    def __init__(self, k_p, k_i, k_d, deriv_window=5, integral_window=10):
+    def __init__(self, k_p, k_i, k_d, deriv_window=10, integral_window=10):
         # Initialize PID constants and internal state variables.
         self.k_p = k_p
         self.k_i = k_i
@@ -78,14 +78,26 @@ class OrientationController:
     OrientationController integrates sensor readings, a PID controller, and motor commands
     to adjust the robot's heading along a line. It uses the two center sensors for error calculation.
     This implementation uses moving windows for both derivative and integral terms to smooth the PID response.
+    
+    New parameters:
+      - sensitivity: scales the PID output before it is added to the base speed (default: 1).
+      - action_type: determines the motor command pattern.
+          "straight" (default): left_speed = base_speed + sensitivity*PID,
+                                right_speed = base_speed - sensitivity*PID.
+          "left": left_speed = -base_speed + sensitivity*PID,
+                  right_speed = base_speed - sensitivity*PID.
+          "right": left_speed = base_speed + sensitivity*PID,
+                   right_speed = -base_speed - sensitivity*PID.
     """
-    def __init__(self, base_speed=75, k_p=20, k_i=0.5, k_d=10, deriv_window=5, integral_window=10):
+    def __init__(self, base_speed=75, k_p=20, k_i=0.5, k_d=10, deriv_window=10, integral_window=10, sensitivity=1, action_type="straight"):
         self.sensors = LineSensors()
         self.left_motor = Motor2()   # Left motor (Motor2)
         self.right_motor = Motor1()  # Right motor (Motor1)
         self.car = MotorPair(self.left_motor, self.right_motor)
         self.pid = PIDController(k_p, k_i, k_d, deriv_window, integral_window)
         self.base_speed = base_speed
+        self.sensitivity = sensitivity
+        self.action_type = action_type
 
     def get_line_error(self):
         """
@@ -109,7 +121,6 @@ class OrientationController:
         elif right_active and not left_active:
             error = 1.0
         else:
-            # When both are inactive, assume the error remains unchanged.
             error = self.pid.error_window[-1] if self.pid.error_window else 0.0
 
         return error
@@ -119,15 +130,31 @@ class OrientationController:
         Perform one forward control update cycle:
           - Read sensor data.
           - Compute PID correction.
-          - Adjust motor speeds (using positive speeds for forward movement).
+          - Adjust motor speeds based on the current action type.
         """
         error = self.get_line_error()
         correction = self.pid.compute(error)
-        # Calculate new speeds based on base_speed and correction.
-        left_speed = clamp_speed(self.base_speed + correction)
-        right_speed = clamp_speed(self.base_speed - correction)
+        # Apply sensitivity factor.
+        scaled_correction = self.sensitivity * correction
+        
+        if self.action_type == "straight":
+            left_speed = clamp_speed(self.base_speed + scaled_correction)
+            right_speed = clamp_speed(self.base_speed - scaled_correction)
+        elif self.action_type == "left":
+            # When turning left: left motor runs at negative base speed plus correction, right runs at positive base speed minus correction.
+            left_speed = clamp_speed(-self.base_speed + scaled_correction)
+            right_speed = clamp_speed(self.base_speed - scaled_correction)
+        elif self.action_type == "right":
+            # When turning right: left motor runs at positive base speed plus correction, right runs at negative base speed minus correction.
+            left_speed = clamp_speed(self.base_speed + scaled_correction)
+            right_speed = clamp_speed(-self.base_speed - scaled_correction)
+        else:
+            # Default to straight if unknown action type.
+            left_speed = clamp_speed(self.base_speed + scaled_correction)
+            right_speed = clamp_speed(self.base_speed - scaled_correction)
+            
         print("Forward Update -> Error: {:.2f}, Correction: {:.2f}, Left Speed: {:.2f}, Right Speed: {:.2f}".format(
-            error, correction, left_speed, right_speed))
+            error, scaled_correction, left_speed, right_speed))
         set_motor_speed(self.left_motor, left_speed)
         set_motor_speed(self.right_motor, right_speed)
 
@@ -136,15 +163,27 @@ class OrientationController:
         Perform one reverse control update cycle:
           - Read sensor data.
           - Compute PID correction.
-          - Adjust motor speeds for reverse movement (base_speed is considered negative).
+          - Adjust motor speeds for reverse movement (base_speed is considered negative) based on the action type.
         """
         error = self.get_line_error()
         correction = self.pid.compute(error)
-        # For reverse, subtract correction from base_speed.
-        left_speed = clamp_speed(self.base_speed - correction)
-        right_speed = clamp_speed(self.base_speed + correction)
+        scaled_correction = self.sensitivity * correction
+        
+        if self.action_type == "straight":
+            left_speed = clamp_speed(self.base_speed - scaled_correction)
+            right_speed = clamp_speed(self.base_speed + scaled_correction)
+        elif self.action_type == "left":
+            left_speed = clamp_speed(-self.base_speed - scaled_correction)
+            right_speed = clamp_speed(self.base_speed + scaled_correction)
+        elif self.action_type == "right":
+            left_speed = clamp_speed(self.base_speed - scaled_correction)
+            right_speed = clamp_speed(-self.base_speed + scaled_correction)
+        else:
+            left_speed = clamp_speed(self.base_speed - scaled_correction)
+            right_speed = clamp_speed(self.base_speed + scaled_correction)
+        
         print("Reverse Update -> Error: {:.2f}, Correction: {:.2f}, Left Speed: {:.2f}, Right Speed: {:.2f}".format(
-            error, correction, left_speed, right_speed))
+            error, scaled_correction, left_speed, right_speed))
         set_motor_speed(self.left_motor, left_speed)
         set_motor_speed(self.right_motor, right_speed)
 

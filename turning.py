@@ -1,7 +1,7 @@
 # Turning.py
 import time
 
-def turn_until_shift(motors, sensor_instance, orientation_controller, turn_type, increment=0.1, timeout=5):
+def turn_until_shift(motors, sensor_instance, orientation_controller, turn_type, increment=0.1, timeout=5, initial_delay=1.5):
     """
     Turn the robot (left or right) until the sensor readings indicate proper alignment.
     During the turning maneuver, the orientation controller is updated periodically so that the
@@ -17,6 +17,7 @@ def turn_until_shift(motors, sensor_instance, orientation_controller, turn_type,
         turn_type: 'left' or 'right'.
         increment: Time in seconds for each turn step.
         timeout: Maximum time in seconds to try achieving the desired sensor pattern.
+        initial_delay: Time to wait before starting to check sensor pattern (in seconds).
     """
     start_time = time.time()
     stable_time = 0.2  # Required stable duration for confirmation.
@@ -34,32 +35,19 @@ def turn_until_shift(motors, sensor_instance, orientation_controller, turn_type,
         # Update orientation control during turning so that the "nose" remains on track.
         orientation_controller.update()
         
-        sensor_data = sensor_instance.read_all()
-        if (sensor_data.get('center_left') == desired_pattern['center_left'] and
-            sensor_data.get('center_right') == desired_pattern['center_right'] #and
-            #sensor_data.get('left_side') == desired_pattern['left_side'] and
-            #sensor_data.get('right_side') == desired_pattern['right_side']
-            ):
-            if pattern_stable_start is None:
-                pattern_stable_start = time.time()
-            elif time.time() - pattern_stable_start >= stable_time:
-                print("Turn complete: Desired sensor pattern achieved.")
-                return
-        else:
-            pattern_stable_start = None
+        # Only start checking the sensor pattern after the initial delay.
+        if time.time() - start_time >= initial_delay:
+            sensor_data = sensor_instance.read_all()
+            if (sensor_data.get('center_left') == desired_pattern['center_left'] and
+                sensor_data.get('center_right') == desired_pattern['center_right']):
+                if pattern_stable_start is None:
+                    pattern_stable_start = time.time()
+                elif time.time() - pattern_stable_start >= stable_time:
+                    print("Turn complete: Desired sensor pattern achieved.")
+                    return
+            else:
+                pattern_stable_start = None
         
         time.sleep(increment)
     
     print("Turn timeout reached without achieving desired sensor pattern.")
-
-def perform_reverse_turn(motors, orientation_controller, duration=0.5):
-    """
-    Execute a reverse maneuver with orientation correction.
-    Uses the orientation controller's update_reverse method for the specified duration.
-    """
-    start_time = time.time()
-    while time.time() - start_time < duration:
-        orientation_controller.update_reverse()
-        time.sleep(0.05)
-    motors.left.off()
-    motors.right.off()
