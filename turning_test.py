@@ -4,7 +4,7 @@ import machine
 from motor import MotorPair, Motor1, Motor2  # Motor2 is left, Motor1 is right
 from orientation_control import OrientationController
 from line_sensor import LineSensors
-from turning import turn_until_shift
+from turning import turn_until_shift  # Import the updated turn_until_shift
 
 def wait_for_button_release(button):
     """
@@ -17,7 +17,7 @@ def wait_for_button_release(button):
 def test_turning():
     """
     Test to simulate the vehicle following a straight line until a T-cross is detected
-    (defined by both side sensors active), then executing a left turn.
+    (defined by side sensors active for a stable period), then executing a left turn using a single orientation controller.
     
     The PID controller remains active during the entire motion, including during the turn.
     The test starts when you press and release the button on pin 20,
@@ -28,15 +28,9 @@ def test_turning():
     right_motor = Motor1()
     motors = MotorPair(left_motor, right_motor)
     
-    # Create the "straight" orientation controller (for driving straight)
+    # Create a single orientation controller for both straight driving and turning.
     orientation_controller = OrientationController(
         base_speed=75, k_p=10, k_i=0.2, k_d=8, deriv_window=10, integral_window=10
-    )
-    # Create a separate orientation controller for turning.
-    # Here, we set a lower base speed (50), sensitivity factor 2, and action_type "left".
-    orientation_controller_turning = OrientationController(
-        base_speed=50, k_p=10, k_i=0.2, k_d=8, deriv_window=10, integral_window=10, 
-        sensitivity=2, action_type="left"
     )
     
     # Instantiate the line sensors.
@@ -60,15 +54,27 @@ def test_turning():
     def t_cross_detected(sensor_data):
         return sensor_data.get('left_side') == 1 or sensor_data.get('right_side') == 1
 
-    # Drive forward until the T-cross condition is met.
+    pattern_stable_start = None  # Timestamp when T-cross pattern was first seen
+
+    # Drive forward until the T-cross condition is met stably.
     while running:
         orientation_controller.update()  # continuously update straight-line PID control
-        time.sleep(0.1)
+        time.sleep(0.05)  # increased sampling frequency
         sensor_data = sensors.read_all()
         print("Sensor readings:", sensor_data)
+        
         if t_cross_detected(sensor_data):
-            print("T-cross detected based on side sensors. Preparing to turn left.")
-            break
+            # If this is the first time we see a T-cross pattern, record the time.
+            if pattern_stable_start is None:
+                pattern_stable_start = time.time()
+            # If the pattern has been stable for at least 0.1 seconds, trigger the turn.
+            elif time.time() - pattern_stable_start >= 0.1:
+                print("T-cross detected based on stable sensor pattern. Preparing to turn left.")
+                break
+        else:
+            # If the pattern is lost, reset the stable timer.
+            pattern_stable_start = None
+
         # Check if the button is pressed to stop the test.
         if button.value() == 0:
             wait_for_button_release(button)
@@ -79,9 +85,9 @@ def test_turning():
             motors.right.off()
             return
 
-    # Execute a left turn. The turning orientation controller is active during the turn.
-    # Note: initial_delay parameter gives a pulse delay after turning starts before we check the sensor pattern.
-    turn_until_shift(motors, sensors, orientation_controller_turning, turn_type='left', increment=0.1, timeout=5, initial_delay=1.5)
+    # Execute a left turn using the single orientation controller.
+    # The integrated turn_until_shift function updates controller parameters for turning and reverts them afterward.
+    turn_until_shift(orientation_controller, sensors, turn_type='left', base_increment=0.1, timeout=5, initial_delay=1.5)
     
     # After the turn, continue forward for a short period.
     print("Turn complete. Driving forward for 2 seconds after turn.")
@@ -92,7 +98,6 @@ def test_turning():
     
     # Stop everything.
     orientation_controller.stop()
-    orientation_controller_turning.stop()
     motors.left.off()
     motors.right.off()
     
