@@ -30,12 +30,12 @@ def test_turning():
     
     # Create the "straight" orientation controller (for driving straight)
     orientation_controller = OrientationController(
-        base_speed=75, k_p=15, k_i=0.05, k_d=5, deriv_window=10, integral_window=10
+        base_speed=75, k_p=10, k_i=0.2, k_d=8, deriv_window=10, integral_window=10
     )
     # Create a separate orientation controller for turning.
     # Here, we set a lower base speed (50), sensitivity factor 2, and action_type "left".
     orientation_controller_turning = OrientationController(
-        base_speed=50, k_p=15, k_i=0.05, k_d=5, deriv_window=10, integral_window=10, 
+        base_speed=50, k_p=10, k_i=0.2, k_d=8, deriv_window=10, integral_window=10, 
         sensitivity=2, action_type="left"
     )
     
@@ -58,7 +58,7 @@ def test_turning():
     running = True
     # Define the T-cross condition based solely on the side sensors.
     def t_cross_detected(sensor_data):
-        return sensor_data.get('left_side') == 1 and sensor_data.get('right_side') == 1
+        return sensor_data.get('left_side') == 1 or sensor_data.get('right_side') == 1
 
     # Drive forward until the T-cross condition is met.
     while running:

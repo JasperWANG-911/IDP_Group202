@@ -28,7 +28,7 @@ def test_straight_line():
     motors = MotorPair(left_motor, right_motor)
     
     # Create an OrientationController with a base speed and tuned PID parameters.
-    orientation_controller = OrientationController(base_speed=75, k_p=15, k_i=0.05, k_d=5, deriv_window=10, integral_window=10)
+    orientation_controller = OrientationController(base_speed=75, k_p=10, k_i=0.2, k_d=8, deriv_window=10, integral_window=10)
     
     # Configure button on pin 20 (active low, with internal pull-up)
     button = machine.Pin(20, machine.Pin.IN, machine.Pin.PULL_UP)
