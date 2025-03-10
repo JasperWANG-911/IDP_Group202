@@ -1,5 +1,5 @@
-# Turning.py
 import time
+
 def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_increment=0.1, timeout=5, initial_delay=1.5, turning_base_speed=50, turning_sensitivity=2):
     """
     Turn the robot by toggling the action type in the orientation controller until the sensor readings 
@@ -27,6 +27,10 @@ def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_in
     # Update orientation controller parameters for turning.
     orientation_controller.base_speed = turning_base_speed
     orientation_controller.sensitivity = turning_sensitivity
+
+    # Stop the vehicle using the controller's stop method before turning.
+    orientation_controller.stop()
+    time.sleep(0.2)  # Allow time for the vehicle to come to a complete stop.
 
     # Set action type to desired turn type if not already set, and reset the PID state.
     if orientation_controller.action_type != turn_type:
