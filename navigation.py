@@ -130,8 +130,7 @@ class Navigation:
             elif turn_type in ['left', 'right']:
                 self.orientation_controller.stop()
                 time.sleep(0.1)
-                turn_until_shift(self.motors, self.sensor_instance, self.orientation_controller,
-                                  turn_type, increment=0.1, timeout=3)
+                turn_until_shift(self.orientation_controller, self.sensor_instance, turn_type=turn_type, base_increment=0.05, timeout=5, initial_delay=0.5)
 
                 print(f"Sensor pattern confirmed after {turn_type} turn.")
                 self.controlled_move_forward(0.5)

@@ -22,7 +22,7 @@ def main():
     # Tunable parameters:
     target_route = ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']  # Change target route if needed.
     base_speed = 75                                       # Default speed.
-    pid_params = (10, 0.05, 10)                           # PID parameters: (k_p, k_i, k_d).
+    pid_params = (10, 0.2, 8)                           # PID parameters: (k_p, k_i, k_d).
     deriv_window = 10                                     # Size of the derivative moving average window.
     integral_window = 10                                  # Size of the integral accumulation window.
     
