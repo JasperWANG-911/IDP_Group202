@@ -68,6 +68,7 @@ def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_in
         # After the initial delay, check if the sensor readings match the desired alignment pattern.
         if time.time() - start_time >= initial_delay:
             sensor_data = sensor_instance.read_all()
+            print(sensor_data)
             if ((sensor_data.get('center_left') == desired_pattern['center_left'] and
                 sensor_data.get('center_right') == desired_pattern['center_right']) or 
                 sensor_data.get('left_side') == desired_pattern['left_side'] or 

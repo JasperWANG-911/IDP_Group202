@@ -37,8 +37,8 @@ def main():
         target_route=target_route,
         base_speed=base_speed,
         pid_params=pid_params,
-        deriv_window=deriv_window,
-        integral_window=integral_window
+        #deriv_window=deriv_window,
+        #integral_window=integral_window
     )
     
     # Configure the start/stop button on pin 20 (active low, internal pull-up)

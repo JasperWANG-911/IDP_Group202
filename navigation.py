@@ -2,7 +2,7 @@
 import time
 import machine
 from Pathfinder import get_edge_direction, get_next_node, compute_turn_type, check_node_sensor
-from turning import turn_until_shift, perform_reverse_turn
+from turning import turn_until_shift
 from line_sensor import LineSensors
 from orientation_control import OrientationController
 
@@ -128,6 +128,8 @@ class Navigation:
                 if visited[-1] != current_node:
                     visited.append(current_node)
             elif turn_type in ['left', 'right']:
+                self.orientation_controller.stop()
+                time.sleep(0.1)
                 turn_until_shift(self.motors, self.sensor_instance, self.orientation_controller,
                                   turn_type, increment=0.1, timeout=3)
 
