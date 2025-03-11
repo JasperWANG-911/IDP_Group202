@@ -22,7 +22,7 @@ class Actuator:
         self.m1Dir.value(1)
         self.pwm1.duty_u16(int(65535 * 30 / 100))
 
-    def collection(self, motor_pair, TOF_sensor, colour_sensor) -> tuple[float, float, float, float]:
+    def collection(self, motor_pair, TOF_sensor, colour_sensor) -> str:
         """
         Grabs the box by performing the following steps:
         1. Stop the vehicle.
@@ -50,11 +50,12 @@ class Actuator:
 
         # Move the vehicle backward to clear the box
         motor_pair.move_backward(duration=5)  # Adjust the backward movement duration as needed
-        rgb = html_rgb(colour_sensor.read(raw = True))
-        return rgb # Ideally will return a string corresponding to colour, but need values for conditionals.
+        r,_ ,_ = html_rgb(colour_sensor.read(raw = True)) # Ensure that colour_sensor has gain maximised (60)
+        if r > 6:
+            return 'RY'
+        else:
+            return 'BG'
     
-
-
     def dropoff(self, motor_pair):
         """
         Reverse the process in grab_the_box() to drop the box.
