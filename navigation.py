@@ -82,8 +82,8 @@ class Navigation:
         target_index = 0
         num_targets = len(self.target_route)
         
-        # Assume the vehicle starts facing North (0°).
-        current_orientation = 0  
+        current_orientation = 0
+        
         while target_index < num_targets:
             target = self.target_route[target_index]
             if current_node == target:
@@ -112,43 +112,46 @@ class Navigation:
 
             edge_dir = get_edge_direction(current_node, next_node)
             if edge_dir is None:
-                # If no edge direction, assume desired direction is unchanged.
-                desired_direction = current_orientation  
+                desired_direction = 0  # Default (North)
             else:
-                # Map cardinal direction to an angle.
-                mapping = {'N': 0, 'E': 90, 'S': 180, 'W': 270}
-                desired_direction = mapping.get(edge_dir, current_orientation)
+                mapping = {'N': 0, 'E': 1, 'S': 2, 'W': 3}
+                desired_direction = mapping.get(edge_dir, 0)
 
-            print(f"Current Orientation: {current_orientation}, Desired: {desired_direction}")
-            # Compute the turn type based on the current and desired orientations.
+            # For simulation, assume current orientation is 0 (North).
+            
             turn_type = compute_turn_type(current_orientation, desired_direction)
-            print(f"Turn: {turn_type}")
+            print(f"Current Orientation: {current_orientation}, Desired: {desired_direction}, Turn: {turn_type}")
 
             check_node_sensor(self.sensor_instance, current_node)
 
             if turn_type == 'straight':
                 self.controlled_move_forward(0.5)
                 current_node = next_node
-                # Orientation remains unchanged.
+                if visited[-1] != current_node:
+                    visited.append(current_node)
             elif turn_type in ['left', 'right']:
                 self.orientation_controller.stop()
                 time.sleep(0.1)
                 turn_until_shift(self.orientation_controller, self.sensor_instance, turn_type=turn_type, base_increment=0.05, timeout=5, initial_delay=0.5)
+
                 print(f"Sensor pattern confirmed after {turn_type} turn.")
+                current_orientation = desired_direction
                 self.controlled_move_forward(0.5)
                 current_node = next_node
-                # After a successful turn, update current orientation.
-                current_orientation = desired_direction  
+                if visited[-1] != current_node:
+                    visited.append(current_node)
+
             elif turn_type == 'rear':
                 print("Executing reverse move (without turning) to reach next node.")
                 self.controlled_move_backward(0.5)
                 current_node = next_node
+                if visited[-1] != current_node:
+                    visited.append(current_node)
                 print("Reverse move complete; new node reached.")
             time.sleep(0.1)
         
         print("Navigation complete. All target nodes reached.")
         return visited
-
 
 if __name__ == "__main__":
     # For testing when run directly.
