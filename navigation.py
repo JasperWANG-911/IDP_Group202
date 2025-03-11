@@ -90,6 +90,7 @@ class Navigation:
                 # At marking nodes, pause and execute reverse maneuver.
                 if target in ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']:
                     sp = self.sensor_instance.read_all()
+                    print("Sensor data:", sp)
                     if sp.get('left_side') == 1 or sp.get('right_side') == 1:
                         print(f"Marking line detected at {target}. Pausing for 3 seconds.")
                         time.sleep(3)

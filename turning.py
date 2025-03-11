@@ -41,7 +41,7 @@ def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_in
     start_time = time.time()
     stable_time = 0.2  # Duration (in seconds) the sensor pattern must be stable for confirmation.
     pattern_stable_start = None
-    desired_pattern = {'center_left': 1, 'center_right': 1, 'left_side': 0, 'right_side': 0}
+    desired_pattern = {'center_left': 1, 'center_right': 1, 'left_side': 1, 'right_side': 1}
 
     while time.time() - start_time < timeout:
         # If the action type has unexpectedly changed, reset it and clear the PID state.
@@ -56,8 +56,10 @@ def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_in
         # After the initial delay, check if the sensor readings match the desired alignment pattern.
         if time.time() - start_time >= initial_delay:
             sensor_data = sensor_instance.read_all()
-            if (sensor_data.get('center_left') == desired_pattern['center_left'] and
-                sensor_data.get('center_right') == desired_pattern['center_right']):
+            if ((sensor_data.get('center_left') == desired_pattern['center_left'] and
+                sensor_data.get('center_right') == desired_pattern['center_right']) or 
+                sensor_data.get('left_side') == desired_pattern['left_side'] or 
+                sensor_data.get('right_side') == desired_pattern['right_side']):
                 if pattern_stable_start is None:
                     pattern_stable_start = time.time()
                 elif time.time() - pattern_stable_start >= stable_time:

@@ -89,7 +89,7 @@ class OrientationController:
           "right": left_speed = base_speed + sensitivity*PID,
                    right_speed = -base_speed - sensitivity*PID.
     """
-    def __init__(self, base_speed=75, k_p=20, k_i=0.5, k_d=10, deriv_window=10, integral_window=10, sensitivity=1, action_type="straight"):
+    def __init__(self, base_speed=75, k_p=20, k_i=0.5, k_d=10, deriv_window=10, integral_window=5, sensitivity=1, action_type="straight"):
         self.sensors = LineSensors()
         self.left_motor = Motor2()   # Left motor (Motor2)
         self.right_motor = Motor1()  # Right motor (Motor1)
