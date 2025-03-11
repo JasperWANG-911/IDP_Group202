@@ -99,7 +99,7 @@ def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_in
     orientation_controller.base_speed = original_base_speed
     orientation_controller.sensitivity = original_sensitivity
 
-def turn_90(orientation_controller, turn_type, angle = 90, turning_base_speed = 50):
+def turn_90(orientation_controller, sensor_instance, turn_type, angle = 90, turning_base_speed = 50):
     # Tunable turning time.
     if angle == 90:
         turn_time = 5
@@ -128,6 +128,8 @@ def turn_90(orientation_controller, turn_type, angle = 90, turning_base_speed = 
         orientation_controller.pid.error_window.clear()      # Reset derivative history.
         orientation_controller.pid.integral_window.clear()   # Reset integral history.
 
+    print(sensor_instance.read_all())
+    
     start_time = time.time()
 
     while time.time() - start_time < turn_time:
@@ -153,6 +155,8 @@ def turn_90(orientation_controller, turn_type, angle = 90, turning_base_speed = 
         print("Forward Update -> Left Speed: {:.2f}, Right Speed: {:.2f}".format(left_speed, right_speed))
         set_motor_speed(Motor2(), left_speed)
         set_motor_speed(Motor1(), right_speed)
+    
+    print(sensor_instance.read_all())
         
     orientation_controller.action_type = "straight"
     orientation_controller.pid.error_window.clear()
