@@ -69,7 +69,7 @@ def test_turning_loop():
         if t_cross_detected(sensor_data):
             if pattern_stable_start is None:
                 pattern_stable_start = time.time()
-            elif time.time() - pattern_stable_start >= 0.1:
+            elif time.time() - pattern_stable_start >= 0:
                 print("Stable T-cross detected. Preparing to turn left.")
                 running = False  # Exit the loop to trigger turning.
                 break
@@ -87,7 +87,7 @@ def test_turning_loop():
 
     # If a stable T-cross was detected, execute a left turn.
     if pattern_stable_start is not None:
-        turn_until_shift(orientation_controller, sensors, turn_type='left', base_increment=0.1, timeout=5, initial_delay=1.5)
+        turn_until_shift(orientation_controller, sensors, turn_type='left', base_increment=0.05, timeout=5, initial_delay=0.5)
         print("Turn executed.")
     else:
         print("Test stopped without triggering a turn.")

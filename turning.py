@@ -1,6 +1,6 @@
 import time
 
-def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_increment=0.1, timeout=5, initial_delay=1.5, turning_base_speed=50, turning_sensitivity=2):
+def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_increment=0.1, timeout=5, initial_delay=1.5, turning_base_speed=55, turning_sensitivity=0.6):
     """
     Turn the robot by toggling the action type in the orientation controller until the sensor readings 
     indicate proper alignment. This method automatically updates the orientation controller parameters for turning 
@@ -10,8 +10,10 @@ def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_in
     is zeroed by clearing the corresponding windows. Once turning is done, the action type is reset to "straight" 
     and the PID state is cleared.
     
+    At the beginning of turning, the vehicle moves backward slightly to clear the junction.
+    
     Args:
-        orientation_controller: The OrientationController instance (with update() method and action_type property).
+        orientation_controller: The OrientationController instance (with update(), update_reverse(), stop() methods and action_type property).
         sensor_instance: The sensor instance providing the read_all() method.
         turn_type: 'left' or 'right', used to set the action type for turning.
         base_increment: The constant time delay (in seconds) for each update cycle.
@@ -24,14 +26,24 @@ def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_in
     original_base_speed = orientation_controller.base_speed
     original_sensitivity = orientation_controller.sensitivity
     
+
+
+    # Stop the vehicle using the controller's stop method before turning.
+    #orientation_controller.stop()
+    #time.sleep(0.2)  # Allow time for the vehicle to come to a complete stop.
+    
+    # Move backward a bit before initiating the turn.
+    orientation_controller.base_speed = 28
+    reverse_duration = 0.05 # seconds to reverse
+    reverse_start = time.time()
+    while time.time() - reverse_start < reverse_duration:
+        orientation_controller.update_reverse()
+        time.sleep(0.05)
+    
     # Update orientation controller parameters for turning.
     orientation_controller.base_speed = turning_base_speed
     orientation_controller.sensitivity = turning_sensitivity
-
-    # Stop the vehicle using the controller's stop method before turning.
-    orientation_controller.stop()
-    time.sleep(0.2)  # Allow time for the vehicle to come to a complete stop.
-
+    
     # Set action type to desired turn type if not already set, and reset the PID state.
     if orientation_controller.action_type != turn_type:
         orientation_controller.action_type = turn_type
@@ -39,7 +51,7 @@ def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_in
         orientation_controller.pid.integral_window.clear()   # Reset integral history.
 
     start_time = time.time()
-    stable_time = 0.2  # Duration (in seconds) the sensor pattern must be stable for confirmation.
+    stable_time = 0.03  # Duration (in seconds) the sensor pattern must be stable for confirmation.
     pattern_stable_start = None
     desired_pattern = {'center_left': 1, 'center_right': 1, 'left_side': 1, 'right_side': 1}
 
