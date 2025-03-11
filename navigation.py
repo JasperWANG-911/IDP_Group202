@@ -23,6 +23,7 @@ class Navigation:
         self.orientation_controller = OrientationController(base_speed=base_speed, k_p=k_p, k_i=k_i, k_d=k_d)
         # Create an LED object on GP14 for visual indication.
         self.led = machine.Pin(14, machine.Pin.OUT)
+        self.current_orientation = 0
 
     def flash_led(self, flashes=1, duration=0.5):
         """Flash the LED a specified number of times."""
@@ -83,8 +84,6 @@ class Navigation:
         target_index = 0
         num_targets = len(self.target_route)
         
-        current_orientation = 0
-        
         while target_index < num_targets:
             target = self.target_route[target_index]
             if current_node == target:
@@ -120,8 +119,8 @@ class Navigation:
 
             # For simulation, assume current orientation is 0 (North).
             
-            turn_type = compute_turn_type(current_orientation, desired_direction)
-            print(f"Current Orientation: {current_orientation}, Desired: {desired_direction}, Turn: {turn_type}")
+            turn_type = compute_turn_type(self.current_orientation, desired_direction)
+            print(f"Current Orientation: {self.current_orientation}, Desired: {desired_direction}, Turn: {turn_type}")
 
             check_node_sensor(self.sensor_instance, current_node)
 
@@ -136,7 +135,7 @@ class Navigation:
                 turn_until_shift(self.orientation_controller, self.sensor_instance, turn_type=turn_type, base_increment=0.05, timeout=5, initial_delay=0.5)
 
                 print(f"Sensor pattern confirmed after {turn_type} turn.")
-                current_orientation = desired_direction
+                self.current_orientation = desired_direction
                 self.controlled_move_forward(0.5)
                 current_node = next_node
                 if visited[-1] != current_node:
