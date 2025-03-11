@@ -49,9 +49,7 @@ The main entry point that:
 
 ## Flowchart
 
-![flowchart](https://github.com/user-attachments/assets/e4d62157-3a40-41b4-9586-691ff210028a)
-
-
+<img width="916" alt="Screenshot 2025-03-11 at 10 31 47" src="https://github.com/user-attachments/assets/eb8fca1b-e4a5-4ec9-9083-6b37f4913224" />
 
 
 ## Usage Instructions
