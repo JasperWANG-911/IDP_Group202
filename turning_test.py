@@ -87,7 +87,7 @@ def test_turning_loop():
 
     # If a stable T-cross was detected, execute a left turn.
     if pattern_stable_start is not None:
-        turn_902(orientation_controller, sensors, turn_type='left', base_increment=0.05, timeout=5, initial_delay=0.5)
+        turn_90(orientation_controller, sensors, turn_type='left', base_increment=0.05, timeout=5, initial_delay=0.5)
         print("Turn executed.")
     else:
         print("Test stopped without triggering a turn.")

@@ -2,7 +2,7 @@
 import time
 import machine
 from Pathfinder import get_edge_direction, get_next_node, compute_turn_type, check_node_sensor
-from turning import turn_until_shift
+from turning import turn_until_shift, turn_90
 from line_sensor import LineSensors
 from orientation_control import OrientationController
 
