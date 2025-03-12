@@ -4,7 +4,7 @@ import machine
 from motor import MotorPair, Motor1, Motor2  # Motor2 is left, Motor1 is right
 from orientation_control import OrientationController
 from line_sensor import LineSensors
-from turning import turn_until_shift
+from turning import turn_until_shift, turn_90
 
 def wait_for_button_release(button):
     """
@@ -87,7 +87,7 @@ def test_turning_loop():
 
     # If a stable T-cross was detected, execute a left turn.
     if pattern_stable_start is not None:
-        turn_until_shift(orientation_controller, sensors, turn_type='left', base_increment=0.05, timeout=5, initial_delay=0.5)
+        turn_902(orientation_controller, sensors, turn_type='left', base_increment=0.05, timeout=5, initial_delay=0.5)
         print("Turn executed.")
     else:
         print("Test stopped without triggering a turn.")
