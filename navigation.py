@@ -9,20 +9,20 @@ from orientation_control import OrientationController
 class Navigation:
     def __init__(self, motors, target_route=None, base_speed=75, pid_params=(20, 0.5, 10)):
         """
-        Initialize the Navigation class with tunable parameters.
+        Initialize the Navigation class.
         Args:
             motors: MotorPair instance controlling the robot.
-            target_route (list): A list of target nodes (default: ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']).
-            base_speed (int): Default base speed for orientation control.
-            pid_params (tuple): PID parameters as (k_p, k_i, k_d).
+            target_route (list): Target nodes (default: ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']).
+            base_speed (int): Default base speed.
+            pid_params (tuple): PID parameters (k_p, k_i, k_d).
         """
         self.motors = motors
         self.sensor_instance = LineSensors()
         self.target_route = target_route if target_route is not None else ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']
         k_p, k_i, k_d = pid_params
         self.orientation_controller = OrientationController(base_speed=base_speed, k_p=k_p, k_i=k_i, k_d=k_d)
-        # Create an LED object on GP14 for visual indication.
         self.led = machine.Pin(14, machine.Pin.OUT)
+        # Use previous 0/1/2/3 for direction.
         self.current_orientation = 0
 
     def flash_led(self, flashes=1, duration=0.5):
@@ -34,18 +34,14 @@ class Navigation:
             time.sleep(duration)
 
     def controlled_move_forward(self, duration, update_interval=0.1):
-        """
-        Drives forward for the specified duration while continuously updating orientation control.
-        """
+        """Drive forward for the given duration while updating the controller."""
         start_time = time.time()
         while time.time() - start_time < duration:
             self.orientation_controller.update()
             time.sleep(update_interval)
 
     def controlled_move_backward(self, duration, update_interval=0.1):
-        """
-        Drives backward for the specified duration while continuously updating reverse orientation control.
-        """
+        """Drive backward for the given duration while updating reverse control."""
         start_time = time.time()
         while time.time() - start_time < duration:
             self.orientation_controller.update_reverse()
@@ -53,44 +49,40 @@ class Navigation:
 
     def run(self):
         """
-        Main navigation loop integrating the pathfinder and turning modules.
-        Special rules:
-          a. At node 1 (start/finish), if the start line is not initially detected, 
-             drive forward until it is detected, then flash LED and make a short move.
-          b. During navigation, each cycle updates the controller and reads sensors.
-             If at least one side sensor remains active for at least 0.3s, it is treated as a cross.
-             In that case, if a left/right turn is indicated, the turning maneuver is executed.
-          c. At marking nodes, if the marking line is detected, pause and execute a reverse maneuver.
-          d. For reverse moves, drive backward continuously until reaching the next node.
+        Main navigation loop.
+        (a) At the start, drive forward until the start line (detected by side sensor) is seen.
+        (b) Then, for each edge of the route, the system continuously updates the controller and sensor.
+            It waits until a cross is detected (one side sensor active continuously for 0.3s).
+            Only then are the graph computations (next node, desired direction, turn type) performed.
+            If a left/right turn is needed, the turn is executed.
         Returns:
             List of visited nodes.
         """
         current_node = 1
         visited = [current_node]
         
-        # At start: continuously drive forward until the start line is detected.
+        # Start: drive until start line detected.
         print("Searching for start line...")
         while True:
             sp = self.sensor_instance.read_all()
             if sp.get('left_side') == 1 or sp.get('right_side') == 1:
                 print("Start line detected at node 1.")
-                self.led.value(1)  # LED on as indicator.
+                self.led.value(1)
                 self.controlled_move_forward(0.5)
                 break
             else:
                 self.orientation_controller.update()
                 time.sleep(0.1)
-
+        
         target_index = 0
         num_targets = len(self.target_route)
-        cross_stable_start = None
-
+        
         while target_index < num_targets:
             target = self.target_route[target_index]
             if current_node == target:
                 print(f"Reached target node: {target}")
                 self.flash_led(flashes=1, duration=0.2)
-                # At marking nodes, pause and execute reverse maneuver.
+                # At marking nodes, if a marking line is detected, pause and reverse.
                 if target in ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']:
                     sp = self.sensor_instance.read_all()
                     print("Sensor data at marking:", sp)
@@ -99,7 +91,6 @@ class Navigation:
                         time.sleep(3)
                     print("Executing reverse maneuver to leave marking node.")
                     self.controlled_move_backward(0.5)
-                # For finish (node 1), drive forward slightly and stop.
                 if target == 1:
                     print("Finish line detected. Moving forward a short distance and stopping.")
                     self.controlled_move_forward(0.5)
@@ -107,76 +98,55 @@ class Navigation:
                 target_index += 1
                 continue
 
+            # Wait until a cross is detected by sensor pattern.
+            cross_stable_start = None
+            print("Waiting for cross detection...")
+            while True:
+                self.orientation_controller.update()
+                sp = self.sensor_instance.read_all()
+                # Print sensor data for debugging.
+                print("Sensor data:", sp)
+                if sp.get('left_side') == 1 or sp.get('right_side') == 1:
+                    if cross_stable_start is None:
+                        cross_stable_start = time.time()
+                    elif time.time() - cross_stable_start >= 0.3:
+                        print("Cross detected: side sensor active for 0.3s.")
+                        break
+                else:
+                    cross_stable_start = None
+                time.sleep(0.05)
+            
+            # Now that a cross is detected, compute the graph-related information.
             next_node = get_next_node(current_node, target)
-            print(f"Current node: {current_node}, Next node: {next_node}, Target: {target}")
-
+            print(f"Graph computation: Current node: {current_node}, Next node: {next_node}, Target: {target}")
             edge_dir = get_edge_direction(current_node, next_node)
             if edge_dir is None:
                 desired_direction = self.current_orientation
             else:
-                mapping = {'N': 0, 'E': 90, 'S': 180, 'W': 270}
+                mapping = {'N': 0, 'E': 1, 'S': 2, 'W': 3}
                 desired_direction = mapping.get(edge_dir, self.current_orientation)
-
-            # Compute the turn type using the current persistent orientation.
+            
             turn_type = compute_turn_type(self.current_orientation, desired_direction)
-            print(f"Current Orientation: {self.current_orientation}, Desired: {desired_direction}, Turn: {turn_type}")
-
+            print(f"Graph computation: Current Orientation: {self.current_orientation}, Desired: {desired_direction}, Turn: {turn_type}")
             check_node_sensor(self.sensor_instance, current_node)
             
-            # Update controller and read sensor data in every cycle.
-            self.orientation_controller.update()
-            sp = self.sensor_instance.read_all()
-            print("Sensor data:", sp)
-            
-            # Cross detection: if at least one side sensor is active continuously for 0.3 seconds.
-            if sp.get('left_side') == 1 or sp.get('right_side') == 1:
-                if cross_stable_start is None:
-                    cross_stable_start = time.time()
-                elif time.time() - cross_stable_start >= 0.3:
-                    print("Cross detected: side sensor active for 0.3s.")
-                    if turn_type in ['left', 'right']:
-                        self.orientation_controller.stop()
-                        time.sleep(0.1)
-                        turn_90(self.orientation_controller, self.sensor_instance, turn_type=turn_type, turn_time=2.5)
-                        print(f"Executed {turn_type} turn at cross.")
-                        self.current_orientation = desired_direction
-                        self.controlled_move_forward(0.5)
-                        current_node = next_node
-                        if visited[-1] != current_node:
-                            visited.append(current_node)
-                        cross_stable_start = None
-                        continue
-                    else:
-                        cross_stable_start = None
-            else:
-                cross_stable_start = None
-
-            # If no cross is detected, proceed based on the computed turn type.
-            if turn_type == 'straight':
-                self.controlled_move_forward(0.5)
-                current_node = next_node
-                if visited[-1] != current_node:
-                    visited.append(current_node)
-            elif turn_type in ['left', 'right']:
+            # Execute turning only if turn_type is left/right and cross was detected.
+            if turn_type in ['left', 'right']:
                 self.orientation_controller.stop()
                 time.sleep(0.1)
                 turn_90(self.orientation_controller, self.sensor_instance, turn_type=turn_type, turn_time=2.5)
-                print(f"Sensor pattern confirmed after {turn_type} turn.")
+                print(f"Executed {turn_type} turn at cross.")
                 self.current_orientation = desired_direction
-                self.controlled_move_forward(0.5)
-                current_node = next_node
-                if visited[-1] != current_node:
-                    visited.append(current_node)
-            elif turn_type == 'rear':
-                print("Executing reverse move (without turning) to reach next node.")
-                self.controlled_move_backward(0.5)
-                current_node = next_node
-                if visited[-1] != current_node:
-                    visited.append(current_node)
-                print("Reverse move complete; new node reached.")
+            else:
+                print("No turning required (straight or rear move).")
+            
+            self.controlled_move_forward(0.5)
+            current_node = next_node
+            if visited[-1] != current_node:
+                visited.append(current_node)
             time.sleep(0.1)
         
-        self.led.value(0)  # Turn off LED.
+        self.led.value(0)
         print("Navigation complete. All target nodes reached.")
         return visited
 
