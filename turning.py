@@ -99,20 +99,20 @@ def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_in
     orientation_controller.base_speed = original_base_speed
     orientation_controller.sensitivity = original_sensitivity
 
-def turn_90(orientation_controller, sensor_instance, turn_type, angle = 90, turning_base_speed = 50):
+def turn_90(orientation_controller, sensor_instance, turn_type, angle = 90, turning_base_speed = 50, turn_time=2):
     # Tunable turning time.
     if angle == 90:
-        turn_time = 5
+        turn_time = turn_time
     elif angle == 180:
-        turn_time = 10
+        turn_time*=2
     else:
-        turn_time = 5 * angle/90
+        turn_time = turn_time * angle/90
 
     # Save the original orientation controller parameter.
     original_base_speed = orientation_controller.base_speed
 
     # Move backward a bit before initiating the turn.
-    orientation_controller.base_speed = 28
+    orientation_controller.base_speed = 20
     reverse_duration = 0.05 # seconds to reverse
     reverse_start = time.time()
     while time.time() - reverse_start < reverse_duration:

@@ -132,7 +132,7 @@ class Navigation:
             elif turn_type in ['left', 'right']:
                 self.orientation_controller.stop()
                 time.sleep(0.1)
-                turn_until_shift(self.orientation_controller, self.sensor_instance, turn_type=turn_type, base_increment=0.05, timeout=5, initial_delay=0.5)
+                turn_90(self.orientation_controller, self.sensor_instance, turn_type=turn_type, turn_time=2.5)
 
                 print(f"Sensor pattern confirmed after {turn_type} turn.")
                 self.current_orientation = desired_direction
