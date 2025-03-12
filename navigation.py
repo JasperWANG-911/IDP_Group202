@@ -111,17 +111,17 @@ class Navigation:
                 # Print sensor data for debugging.
                 print("Sensor data:", sp)
                 if sp.get('left_side') == 1 or sp.get('right_side') == 1:
-                    if cross_stable_start is None:
-                        cross_stable_start = time.time()
-                    elif time.time() - cross_stable_start >= 0.05:
-                        print("Cross detected: side sensor active for 0.05s.")
-                        current_node = next_node
-                        self.orientation_controller.stop()
-                        if current_node == target:
-                            target_index += 1
-                            target = self.target_route[target_index]
-                            time.sleep(3)
-                        break
+                    #if cross_stable_start is None:
+                        #cross_stable_start = time.time()
+                    #elif time.time() - cross_stable_start >= 0.05:
+                    print("Cross detected: side sensor active for 0.05s.")
+                    current_node = next_node
+                    self.orientation_controller.stop()
+                    if current_node == target:
+                        target_index += 1
+                        target = self.target_route[target_index]
+                        time.sleep(3)
+                    break
                 else:
                     cross_stable_start = None
                 time.sleep(0.05)
@@ -146,7 +146,7 @@ class Navigation:
             if turn_type in ['left', 'right']:
                 self.orientation_controller.stop()
                 time.sleep(0.1)
-                turn_time = 2.5
+                turn_time = 2.2
                 '''
                 if (sp.get('center_left') == 1 and sp.get('center_right') == 0):
                     orientation_discrepancy = 'right'
@@ -165,7 +165,8 @@ class Navigation:
                 print(f"Executed {turn_type} turn at cross.")
                 self.current_orientation = desired_direction
             elif turn_type == 'rear':
-                turn_90(self.orientation_controller, self.sensor_instance, angle=180, turn_type=turn_type, turn_time=turn_time)               
+                turn_90(self.orientation_controller, self.sensor_instance, angle=180, turn_type='left', turn_time=turn_time)      
+                self.current_orientation = desired_direction         
             else:
                 print("No turning required (straight).")
             

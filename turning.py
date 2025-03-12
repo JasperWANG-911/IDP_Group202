@@ -152,7 +152,7 @@ def turn_90(orientation_controller, sensor_instance, turn_type, angle = 90, turn
             left_speed = clamp_speed(turning_base_speed)
             right_speed = clamp_speed(turning_base_speed)
             
-        print("Forward Update -> Left Speed: {:.2f}, Right Speed: {:.2f}".format(left_speed, right_speed))
+        #print("Forward Update -> Left Speed: {:.2f}, Right Speed: {:.2f}".format(left_speed, right_speed))
         set_motor_speed(Motor2(), left_speed)
         set_motor_speed(Motor1(), right_speed)
     

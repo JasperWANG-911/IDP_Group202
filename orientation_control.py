@@ -154,7 +154,7 @@ class OrientationController:
             right_speed = clamp_speed(self.base_speed - scaled_correction)
             
         #print("Forward Update -> Error: {:.2f}, Correction: {:.2f}, Left Speed: {:.2f}, Right Speed: {:.2f}".format(
-            error, scaled_correction, left_speed, right_speed))
+            #error, scaled_correction, left_speed, right_speed))
         set_motor_speed(self.left_motor, left_speed)
         set_motor_speed(self.right_motor, right_speed)
 
