@@ -73,7 +73,8 @@ class Navigation:
             sp = self.sensor_instance.read_all()
             if sp.get('left_side') == 1 or sp.get('right_side') == 1:
                 print("Start line detected at node 1.")
-                self.flash_led(flashes=1, duration=0.2)  # Flash LED at start.
+                #self.flash_led(flashes=1, duration=0.2)  # Flash LED at start.
+                self.led.value(1) # Set flashing LED to 1
                 self.controlled_move_forward(0.5)
                 break
             else:
@@ -149,6 +150,7 @@ class Navigation:
                 print("Reverse move complete; new node reached.")
             time.sleep(0.1)
         
+        self.led.value(0) # Turn flashing LED off
         print("Navigation complete. All target nodes reached.")
         return visited
 

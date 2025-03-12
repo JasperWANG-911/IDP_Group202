@@ -51,7 +51,7 @@ class Actuator:
         # Move the vehicle backward to clear the box
         motor_pair.move_backward(duration=5)  # Adjust the backward movement duration as needed
         r,_ ,_ = html_rgb(colour_sensor.read(raw = True)) # Ensure that colour_sensor has gain maximised (60)
-        if r > 6:
+        if r > 7:
             return 'RY'
         else:
             return 'BG'
