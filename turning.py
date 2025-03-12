@@ -33,7 +33,7 @@ def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_in
     #time.sleep(0.2)  # Allow time for the vehicle to come to a complete stop.
     
     # Move backward a bit before initiating the turn.
-    orientation_controller.base_speed = 20
+    orientation_controller.base_speed = 10
     reverse_duration = 0.05 # seconds to reverse
     reverse_start = time.time()
     while time.time() - reverse_start < reverse_duration:

@@ -87,12 +87,13 @@ if __name__ == "__main__":
     motor2 = motor.Motor2()
     motor_pair = motor.MotorPair(motor1, motor2)
     led = Pin(14, Pin.OUT)
-    led.value(1)
+    led.value(0)
     
-    '''
-    actuator.Forward()
+
+    actuator.Reverse()
     sleep(3.3)
     actuator.off()
+    
     '''
     
     # LED flashing
@@ -130,7 +131,7 @@ if __name__ == "__main__":
 
     # once get to a node, do this:
     
-
+    '''
         
         
         

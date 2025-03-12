@@ -59,6 +59,7 @@ class Navigation:
             List of visited nodes.
         """
         current_node = 1
+        next_node = 2
         visited = [current_node]
         
         # Start: drive until start line detected.
@@ -76,11 +77,13 @@ class Navigation:
         
         target_index = 0
         num_targets = len(self.target_route)
-        
+
         while target_index < num_targets:
             target = self.target_route[target_index]
+            '''
             if current_node == target:
                 print(f"Reached target node: {target}")
+                
                 self.flash_led(flashes=1, duration=0.2)
                 # At marking nodes, if a marking line is detected, pause and reverse.
                 if target in ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']:
@@ -88,6 +91,7 @@ class Navigation:
                     print("Sensor data at marking:", sp)
                     if sp.get('left_side') == 1 or sp.get('right_side') == 1:
                         print(f"Marking line detected at {target}. Pausing for 3 seconds.")
+                        self.orientation_controller.stop()
                         time.sleep(3)
                     print("Executing reverse maneuver to leave marking node.")
                     self.controlled_move_backward(0.5)
@@ -97,7 +101,7 @@ class Navigation:
                     break
                 target_index += 1
                 continue
-
+            '''
             # Wait until a cross is detected by sensor pattern.
             cross_stable_start = None
             print("Waiting for cross detection...")
@@ -109,8 +113,14 @@ class Navigation:
                 if sp.get('left_side') == 1 or sp.get('right_side') == 1:
                     if cross_stable_start is None:
                         cross_stable_start = time.time()
-                    elif time.time() - cross_stable_start >= 0.3:
-                        print("Cross detected: side sensor active for 0.3s.")
+                    elif time.time() - cross_stable_start >= 0.05:
+                        print("Cross detected: side sensor active for 0.05s.")
+                        current_node = next_node
+                        self.orientation_controller.stop()
+                        if current_node == target:
+                            target_index += 1
+                            target = self.target_route[target_index]
+                            time.sleep(3)
                         break
                 else:
                     cross_stable_start = None
@@ -121,10 +131,12 @@ class Navigation:
             print(f"Graph computation: Current node: {current_node}, Next node: {next_node}, Target: {target}")
             edge_dir = get_edge_direction(current_node, next_node)
             if edge_dir is None:
-                desired_direction = self.current_orientation
+                print('no avaliable edge')
+                desired_direction = 0  # Default (North)
             else:
                 mapping = {'N': 0, 'E': 1, 'S': 2, 'W': 3}
-                desired_direction = mapping.get(edge_dir, self.current_orientation)
+                desired_direction = mapping.get(edge_dir, 0)
+
             
             turn_type = compute_turn_type(self.current_orientation, desired_direction)
             print(f"Graph computation: Current Orientation: {self.current_orientation}, Desired: {desired_direction}, Turn: {turn_type}")
@@ -134,14 +146,31 @@ class Navigation:
             if turn_type in ['left', 'right']:
                 self.orientation_controller.stop()
                 time.sleep(0.1)
-                turn_90(self.orientation_controller, self.sensor_instance, turn_type=turn_type, turn_time=2.5)
+                turn_time = 2.5
+                '''
+                if (sp.get('center_left') == 1 and sp.get('center_right') == 0):
+                    orientation_discrepancy = 'right'
+                elif (sp.get('center_left') == 0 and sp.get('center_right') == 1):
+                    orientation_discrepancy = 'left'
+                else:
+                    orientation_discrepancy = None
+                
+                if orientation_discrepancy != None:
+                    if orientation_discrepancy == turn_type:
+                        turn_time -= 0.3
+                    else:
+                        turn_time += 0.3
+                '''
+                turn_90(self.orientation_controller, self.sensor_instance, turn_type=turn_type, turn_time=turn_time)
                 print(f"Executed {turn_type} turn at cross.")
                 self.current_orientation = desired_direction
+            elif turn_type == 'rear':
+                turn_90(self.orientation_controller, self.sensor_instance, angle=180, turn_type=turn_type, turn_time=turn_time)               
             else:
-                print("No turning required (straight or rear move).")
+                print("No turning required (straight).")
             
             self.controlled_move_forward(0.5)
-            current_node = next_node
+            #current_node = next_node
             if visited[-1] != current_node:
                 visited.append(current_node)
             time.sleep(0.1)
