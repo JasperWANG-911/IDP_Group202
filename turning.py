@@ -2,7 +2,7 @@ import time
 from motor import Motor1, Motor2
 from orientation_control import clamp_speed, set_motor_speed
 
-def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_increment=0.1, timeout=5, initial_delay=1.5, turning_base_speed=55, turning_sensitivity=0.6):
+def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_increment=0.1, timeout=5, initial_delay=1.7, turning_base_speed=50, turning_sensitivity=0.6):
     """
     Turn the robot by toggling the action type in the orientation controller until the sensor readings 
     indicate proper alignment. This method automatically updates the orientation controller parameters for turning 
@@ -69,25 +69,27 @@ def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_in
         if time.time() - start_time >= initial_delay:
             sensor_data = sensor_instance.read_all()
             print(sensor_data)
-            if ((sensor_data.get('center_left') == desired_pattern['center_left'] and
-                sensor_data.get('center_right') == desired_pattern['center_right']) or 
-                sensor_data.get('left_side') == desired_pattern['left_side'] or 
-                sensor_data.get('right_side') == desired_pattern['right_side']):
-                if pattern_stable_start is None:
-                    pattern_stable_start = time.time()
-                elif time.time() - pattern_stable_start >= stable_time:
-                    print("Turn complete: Desired sensor pattern achieved.")
-                    # Reset the action type to "straight" and clear PID state after turning is done.
-                    orientation_controller.action_type = "straight"
-                    orientation_controller.pid.error_window.clear()
-                    orientation_controller.pid.integral_window.clear()
-                    
-                    # Revert to the original parameters.
-                    orientation_controller.base_speed = original_base_speed
-                    orientation_controller.sensitivity = original_sensitivity
-                    return
-            else:
-                pattern_stable_start = None
+            # Check if at least one center sensor and one side sensor are active (matching desired pattern)
+            if ((sensor_data.get('center_left') == desired_pattern['center_left'] or 
+                sensor_data.get('center_right') == desired_pattern['center_right']) and
+                (sensor_data.get('left_side') == desired_pattern['left_side'] or 
+                sensor_data.get('right_side') == desired_pattern['right_side'])):
+                time.sleep(0.2)
+                #if pattern_stable_start is None:
+                    #pattern_stable_start = time.time()
+                #elif time.time() - pattern_stable_start >= stable_time:
+                print("Turn complete: Desired sensor pattern achieved.")
+                # Reset the action type to "straight" and clear PID state after turning is done.
+                orientation_controller.action_type = "straight"
+                orientation_controller.pid.error_window.clear()
+                orientation_controller.pid.integral_window.clear()
+                
+                # Revert to the original parameters.
+                orientation_controller.base_speed = original_base_speed
+                orientation_controller.sensitivity = original_sensitivity
+                return
+            #else:
+                #pattern_stable_start = None
 
         time.sleep(base_increment)
 
@@ -104,7 +106,7 @@ def turn_90(orientation_controller, sensor_instance, turn_type, angle = 90, turn
     if angle == 90:
         turn_time = turn_time
     elif angle == 180:
-        turn_time*=2
+        turn_time*=2.2
     else:
         turn_time = turn_time * angle/90
 

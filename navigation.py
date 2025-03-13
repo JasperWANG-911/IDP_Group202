@@ -96,7 +96,10 @@ class Navigation:
                     print("Executing reverse maneuver to leave marking node.")
                     self.controlled_move_backward(0.5)
                 if target == 1:
-                    print("Finish line detected. Moving forward a short distance and stopping.")
+                    print("Finish li
+                    
+                    
+                    ne detected. Moving forward a short distance and stopping.")
                     self.controlled_move_forward(0.5)
                     break
                 target_index += 1
@@ -122,8 +125,8 @@ class Navigation:
                         target = self.target_route[target_index]
                         time.sleep(3)
                     break
-                else:
-                    cross_stable_start = None
+                #else:
+                    #cross_stable_start = None
                 time.sleep(0.05)
             
             # Now that a cross is detected, compute the graph-related information.
@@ -161,16 +164,27 @@ class Navigation:
                     else:
                         turn_time += 0.3
                 '''
-                turn_90(self.orientation_controller, self.sensor_instance, turn_type=turn_type, turn_time=turn_time)
+                turn_until_shift(self.orientation_controller, self.sensor_instance, turn_type=turn_type, timeout= 1.8, turning_sensitivity=0)
                 print(f"Executed {turn_type} turn at cross.")
                 self.current_orientation = desired_direction
+                self.controlled_move_forward(0.5)
             elif turn_type == 'rear':
-                turn_90(self.orientation_controller, self.sensor_instance, angle=180, turn_type='left', turn_time=turn_time)      
-                self.current_orientation = desired_direction         
+                print("Executing reverse move (without turning) to reach next node.")
+                self.controlled_move_backward(1)
+                # Increase sensor sampling frequency during reverse
+                sp = self.sensor_instance.read_all()
+                while sp.get('left_side') == 0 and sp.get('right_side') == 0:
+                    self.orientation_controller.update_reverse()
+                    sp = self.sensor_instance.read_all()
+                    time.sleep(0.01)  # reduced sleep interval for more frequent updates
+                self.orientation_controller.stop()
+
+                #turn_90(self.orientation_controller, self.sensor_instance, angle=180, turn_type='right', turn_time=turn_time)      
+                #self.current_orientation = desired_direction         
             else:
                 print("No turning required (straight).")
             
-            self.controlled_move_forward(0.5)
+            #self.controlled_move_forward(0.5)
             #current_node = next_node
             if visited[-1] != current_node:
                 visited.append(current_node)
