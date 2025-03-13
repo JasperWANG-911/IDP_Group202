@@ -182,6 +182,8 @@ class Navigation:
                 #turn_90(self.orientation_controller, self.sensor_instance, angle=180, turn_type='right', turn_time=turn_time)      
                 #self.current_orientation = desired_direction         
             else:
+                self.orientation_controller.stop()
+                time.sleep(0.5)
                 print("No turning required (straight).")
             
             #self.controlled_move_forward(0.5)
