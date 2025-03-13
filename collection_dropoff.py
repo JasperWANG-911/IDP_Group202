@@ -22,56 +22,34 @@ class Actuator:
         self.m1Dir.value(1)
         self.pwm1.duty_u16(int(65535 * 30 / 100))
 
-    def collection(self, motor_pair, TOF_sensor, colour_sensor) -> str:
-        """
-        Grabs the box by performing the following steps:
-        1. Stop the vehicle.
-        2. Extend the actuator to engage the box.
-        3. Move the vehicle forward to position the actuator.
-        4. Retract the actuator to grab the box.
-        5. Move the vehicle backward to complete the operation.
-        """
-        # Stop the vehicle in front of the box
-        motor_pair.off()
+def collection(motor_pair, actuator, TOF_sensor, colour_sensor) -> str:
+    """
+    Checks box distance.
+    When box is within a threshold distance, grab_the_box function is triggered.
+    After triggering grab_the_box, the colour of the box is determined and
+    corresponding colour string is returned.
+    """
+    while TOF_sensor.ping() > 150:  
+        print(TOF_sensor.ping(), 'safe')
 
-        # Extend the actuator
-        self.Forward()
-        sleep(5)  # Adjust the extension time as needed
-        self.off()
-
-        # Move the vehicle forward to reach the box
-        while TOF_sensor.read() > 5: # Adjust this for how far forward we need to travel
-            motor_pair.move_forward()
-
-        # Retract the actuator to grab the box
-        self.Reverse()
-        sleep(1)  # Adjust the retraction time as needed
-        self.off()
-
-        # Move the vehicle backward to clear the box
-        motor_pair.move_backward(duration=5)  # Adjust the backward movement duration as needed
-        r,_ ,_ = html_rgb(colour_sensor.read(raw = True)) # Ensure that colour_sensor has gain maximised (60)
-        if r > 7:
-            return 'RY'
+    else:
+        # Grab the box when it is detected by ToF sensor
+        print('box detected')
+        actuator.grab_the_box(motor_pair)
+        data = colour_sensor.read(True)
+        colour_sensor.gain(60)
+        # read the color by R_value
+        R_value = html_rgb(data)[0]
+        if R_value < 7: 
+            colour = 'BG' # box A/B
         else:
-            return 'BG'
-    
-    def dropoff(self, motor_pair):
-        """
-        Reverse the process in grab_the_box() to drop the box.
-        """
-        # Stop the vehicle in front of the box
-        motor_pair.off()
+            colour = 'RY' # box C/D
+    return colour
 
-        # Extend the actuator
-        self.Forward()
-        sleep(1)  # Adjust the extension time as needed
-        self.off()
+# To drop box, call actuator.drop_the_box
 
-        # Retract the actuator to set the extension length to default
-        self.Reverse()
-        sleep(5)  # Adjust the retraction time as needed
-        self.off()
+def drop_off(motor_pair, actuator, TOF_sensor):
+    actuator.drop_the_box(motor_pair)
+    if TOF_sensor.ping > 20:
+        return True
 
-        # Leave the box-dropping by moving the vehicle backward
-        motor_pair.move_backward(duration=5)
