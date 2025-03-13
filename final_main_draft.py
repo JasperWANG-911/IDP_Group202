@@ -65,15 +65,6 @@ if __name__ == "__main__":
     sleep(3.3)
     actuator.off()
 
-    # during navigation, if arrive a node, doing following:
-    if 1 == 1: # change to node reached
-        collection(motors, actuator, tof, tcs)
-
-        # go back to the corresponding box-dropping zone
-        # ....
-
-        drop_off(motors, actuator, tof)
-
     # Wait for a final button press to end the program (optional).
     print("Press and release the button on pin 20 to exit.")
     wait_for_button_press(button)
