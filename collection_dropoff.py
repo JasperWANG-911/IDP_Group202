@@ -1,16 +1,13 @@
-from machine import Pin, PWM
-from utime import sleep
 import hardware_documentation.TOF_sensor
 from hardware_documentation.tcs34725 import html_rgb
+from orientation_control import OrientationController
 
 def collection(motor_pair, actuator, TOF_sensor, colour_sensor) -> str:
-    """
-    Checks box distance.
-    When box is within a threshold distance, grab_the_box function is triggered.
-    After triggering grab_the_box, the colour of the box is determined and
-    corresponding colour string is returned.
-    """
-    while TOF_sensor.ping() > 150:  
+    # orientation control
+    controller = OrientationController()
+    controller.run()
+
+    while TOF_sensor.ping() > 150:
         print(TOF_sensor.ping(), 'safe')
 
     else:
@@ -30,6 +27,9 @@ def collection(motor_pair, actuator, TOF_sensor, colour_sensor) -> str:
 # To drop box, call actuator.drop_the_box
 
 def drop_off(motor_pair, actuator, TOF_sensor):
+    controller = OrientationController()
+    controller.run()
+
     actuator.drop_the_box(motor_pair)
     if TOF_sensor.ping > 20:
         return True
