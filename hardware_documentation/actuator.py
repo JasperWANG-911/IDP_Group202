@@ -61,7 +61,7 @@ class Actuator:
         self.Reverse()
         sleep(3.3)
         self.off()
-
+        
         
         
         
