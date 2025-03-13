@@ -1,24 +1,18 @@
-#!/usr/bin/env python3
 import machine
-import time
+from machine import Pin, I2C
 from motor import Motor1, Motor2, MotorPair
 from navigation import Navigation
+from collection_dropoff import collection, drop_off
+import hardware_documentation.TOF_sensor
+import hardware_documentation.tcs34725 as tc
+from hardware_documentation.actuator import Actuator
+from hardware_documentation.vl53l0x import VL53L0X
+from hardware_documentation.button import wait_for_button_press
+from utime import sleep
 
-def wait_for_button_press(button):
-    """
-    Wait until the button is pressed and then released.
-    Returns after a complete press-release cycle is detected.
-    """
-    # Wait for button press (active low)
-    while button.value() == 1:
-        time.sleep(0.05)
-    time.sleep(0.2)  # debounce delay
-    # Wait for button release
-    while button.value() == 0:
-        time.sleep(0.05)
-    time.sleep(0.2)  # debounce delay
 
-def main():
+if __name__ == "__main__":
+
     # Tunable parameters:
     target_route = ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']  # Change target route if needed.
     base_speed = 75                                       # Default speed.
@@ -30,8 +24,23 @@ def main():
     left_motor = Motor2()
     right_motor = Motor1()
     motors = MotorPair(left_motor, right_motor)
+    
+    # Initialize actuator
+    actuator = Actuator()
 
-    # Configure the start/stop button on pin 20 (active low, internal pull-up)
+    # Initialize ToF
+    i2c = I2C(id=1, sda=Pin(18), scl=Pin(19))
+    tof = VL53L0X(i2c)
+    budget = tof.measurement_timing_budget_us
+    tof.set_measurement_timing_budget(4000000000)
+    tof.set_Vcsel_pulse_period(tof.vcsel_period_type[0], 12)
+    tof.set_Vcsel_pulse_period(tof.vcsel_period_type[1], 8)
+
+    # Initialize color sensor
+    i2c_bus = I2C(0, sda=Pin(16), scl=Pin(17), freq = 400000)
+    tcs = tc.TCS34725(i2c_bus)
+
+    # Initialize button
     button = machine.Pin(20, machine.Pin.IN, machine.Pin.PULL_UP)
     
     # Create a Navigation instance with all tunable parameters.
@@ -51,10 +60,12 @@ def main():
     visited_nodes = nav.run()
     print("Navigation sequence completed. Visited nodes:", visited_nodes)
 
+    # Calibrate actuator
+    actuator.Reverse()
+    sleep(3.3)
+    actuator.off()
+
     # Wait for a final button press to end the program (optional).
     print("Press and release the button on pin 20 to exit.")
     wait_for_button_press(button)
     print("Exiting program.")
-
-if __name__ == "__main__":
-    main()
