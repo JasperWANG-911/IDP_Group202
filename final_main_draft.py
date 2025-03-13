@@ -1,15 +1,15 @@
 import machine
 from machine import Pin, I2C
-import time
 from motor import Motor1, Motor2, MotorPair
 from navigation import Navigation
-from collection_dropoff import Actuator, collection, drop_off
-from hardware_documentation.TOF_sensor import TOF
-from hardware_documentation.tcs34725
+from collection_dropoff import collection, drop_off
+import hardware_documentation.TOF_sensor
+import hardware_documentation.tcs34725 as tc
 from hardware_documentation.actuator import Actuator
 from hardware_documentation.vl53l0x import VL53L0X
-from utime import sleep
 from hardware_documentation.button import wait_for_button_press
+from utime import sleep
+
 
 if __name__ == "__main__":
 
@@ -25,10 +25,10 @@ if __name__ == "__main__":
     right_motor = Motor1()
     motors = MotorPair(left_motor, right_motor)
     
-    # Initialze actuator
+    # Initialize actuator
     actuator = Actuator()
 
-    # Initialze ToF
+    # Initialize ToF
     i2c = I2C(id=1, sda=Pin(18), scl=Pin(19))
     tof = VL53L0X(i2c)
     budget = tof.measurement_timing_budget_us
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     tof.set_Vcsel_pulse_period(tof.vcsel_period_type[0], 12)
     tof.set_Vcsel_pulse_period(tof.vcsel_period_type[1], 8)
 
-    # Initialze color sensor
+    # Initialize color sensor
     i2c_bus = I2C(0, sda=Pin(16), scl=Pin(17), freq = 400000)
     tcs = tc.TCS34725(i2c_bus)
 
@@ -65,10 +65,14 @@ if __name__ == "__main__":
     sleep(3.3)
     actuator.off()
 
-    # ToF start working once the vehicle is at nodes, NEED TO ADD THIS TO THE NAVIGATION
-    collection(motors, actuator, tof, tcs)
-    # .... + navigating to box-dropping zone
-    drop_off(motors, actuator, tof)
+    # during navigation, if arrive a node, doing following:
+    if 1 == 1: # change to node reached
+        collection(motors, actuator, tof, tcs)
+
+        # go back to the corresponding box-dropping zone
+        # ....
+
+        drop_off(motors, actuator, tof)
 
     # Wait for a final button press to end the program (optional).
     print("Press and release the button on pin 20 to exit.")
