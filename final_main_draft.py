@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import machine
 from machine import Pin, I2C
 import time
@@ -6,27 +5,14 @@ from motor import Motor1, Motor2, MotorPair
 from navigation import Navigation
 from collection_dropoff import Actuator, collection, drop_off
 from hardware_documentation.TOF_sensor import TOF
-from hardware_documentation.sensors import TCS34725 as tc
+from hardware_documentation.tcs34725
 from hardware_documentation.actuator import Actuator
 from hardware_documentation.vl53l0x import VL53L0X
 from utime import sleep
+from hardware_documentation.button import wait_for_button_press
 
+if __name__ == "__main__":
 
-def wait_for_button_press(button):
-    """
-    Wait until the button is pressed and then released.
-    Returns after a complete press-release cycle is detected.
-    """
-    # Wait for button press (active low)
-    while button.value() == 1:
-        time.sleep(0.05)
-    time.sleep(0.2)  # debounce delay
-    # Wait for button release
-    while button.value() == 0:
-        time.sleep(0.05)
-    time.sleep(0.2)  # debounce delay
-
-def main():
     # Tunable parameters:
     target_route = ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']  # Change target route if needed.
     base_speed = 75                                       # Default speed.
@@ -88,6 +74,3 @@ def main():
     print("Press and release the button on pin 20 to exit.")
     wait_for_button_press(button)
     print("Exiting program.")
-
-if __name__ == "__main__":
-    main()
