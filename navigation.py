@@ -19,7 +19,7 @@ class Navigation:
         """
         self.motors = motors
         self.sensor_instance = LineSensors()
-        self.target_route = target_route if target_route is not None else ['X1', 'RY', 'X2', 'RY', 'X3', 'RY', 'X4', 'RY', 1]
+        self.target_route = target_route if target_route is not None else ['X1', 'X2', 'X3', 'X4', 1]
         k_p, k_i, k_d = pid_params
         self.orientation_controller = OrientationController(base_speed=base_speed, k_p=k_p, k_i=k_i, k_d=k_d)
         self.led = machine.Pin(14, machine.Pin.OUT)
@@ -78,9 +78,10 @@ class Navigation:
         
         target_index = 0
         num_targets = len(self.target_route)
+        target = self.target_route[target_index]
 
         while target_index < num_targets:
-            target = self.target_route[target_index]
+            
             '''
             if current_node == target:
                 print(f"Reached target node: {target}")
@@ -123,8 +124,11 @@ class Navigation:
                     self.orientation_controller.stop()
                     if current_node == target:
                         target_index += 1
-                        target = self.target_route[target_index]
-                        time.sleep(3)
+                        if current_node in ['X1', 'X2', 'X3', 'X4']:
+                            target = cd.collection()
+                        elif current_node in ['RY', 'BG']:
+                            cd.drop_off()
+                            target = self.target_route[target_index]
                     break
                 #else:
                     #cross_stable_start = None
@@ -183,7 +187,7 @@ class Navigation:
                 #turn_90(self.orientation_controller, self.sensor_instance, angle=180, turn_type='right', turn_time=turn_time)      
                 #self.current_orientation = desired_direction         
             else:
-                self.controlled_move_forward(2)
+                self.controlled_move_forward(1.5)
                 print("No turning required (straight).")
             
             #self.controlled_move_forward(0.5)
@@ -253,6 +257,7 @@ class Navigation:
                         #turn_90(self.orientation_controller, self.sensor_instance, angle=180, turn_type='right', turn_time=turn_time)      
                         #self.current_orientation = desired_direction         
                     else:
+                        self.controlled_move_forward(1)
                         print("No turning required (straight).")
                     if visited[-1] != current_node:
                         # Add node to visited nodes array
