@@ -121,19 +121,17 @@ if __name__ == "__main__":
     car = MotorPair(left_motor, right_motor)
     
     # List of speeds (as percentages) to test
-    test_speeds = [50, 75, 100]
+    test_speeds = [75]
     
     try:
         for speed in test_speeds:
             print(f"\n--- Testing at {speed}% speed ---")
             print("Moving forward")
-            car.move_forward(duration=3, speed=speed)
-            print("Turning left")
-            car.turn_left(duration=3, speed=speed)
+            car.move_forward(duration=5, speed=speed)
+
             print("Moving backward")
-            car.move_backward(duration=3, speed=speed)
-            print("Turning right")
-            car.turn_right(duration=3, speed=speed)
+            car.move_backward(duration=5, speed=speed)
+
     except KeyboardInterrupt:
         # Allow user to exit the program using Ctrl+C
         pass
