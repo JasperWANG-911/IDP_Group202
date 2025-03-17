@@ -7,7 +7,7 @@ from navigation import Navigation
 from collection_dropoff import Actuator, collection, drop_off
 from hardware_documentation.TOF_sensor import TOF
 from hardware_documentation.sensors import TCS34725 as tc
-from hardware_documentation.actuator import Actuator
+from actuator import Actuator
 from hardware_documentation.vl53l0x import VL53L0X
 from utime import sleep
 
