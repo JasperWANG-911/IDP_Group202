@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 import machine
+from machine import Pin, I2C
 import time
 from motor import Motor1, Motor2, MotorPair
 from navigation import Navigation
+from collection_dropoff import Actuator, collection, drop_off
+from hardware_documentation.TOF_sensor import TOF
+from hardware_documentation.sensors import TCS34725 as tc
+from hardware_documentation.actuator import Actuator
+from hardware_documentation.vl53l0x import VL53L0X
+from utime import sleep
+
 
 def wait_for_button_press(button):
     """
@@ -20,7 +28,7 @@ def wait_for_button_press(button):
 
 def main():
     # Tunable parameters:
-    target_route = ['X1', 'X2', 'X3', 'X4', 1]  # Change target route if needed.
+    target_route = ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']  # Change target route if needed.
     base_speed = 75                                       # Default speed.
     pid_params = (10, 0.2, 8)                           # PID parameters: (k_p, k_i, k_d).
     deriv_window = 10                                     # Size of the derivative moving average window.
@@ -30,6 +38,24 @@ def main():
     left_motor = Motor2()
     right_motor = Motor1()
     motors = MotorPair(left_motor, right_motor)
+    
+    # Initialze actuator
+    actuator = Actuator()
+
+    # Initialze ToF
+    i2c = I2C(id=1, sda=Pin(18), scl=Pin(19))
+    tof = VL53L0X(i2c)
+    budget = tof.measurement_timing_budget_us
+    tof.set_measurement_timing_budget(4000000000)
+    tof.set_Vcsel_pulse_period(tof.vcsel_period_type[0], 12)
+    tof.set_Vcsel_pulse_period(tof.vcsel_period_type[1], 8)
+
+    # Initialze color sensor
+    i2c_bus = I2C(0, sda=Pin(16), scl=Pin(17), freq = 400000)
+    tcs = tc.TCS34725(i2c_bus)
+
+    # Initialize button
+    button = machine.Pin(20, machine.Pin.IN, machine.Pin.PULL_UP)
     
     # Create a Navigation instance with all tunable parameters.
     nav = Navigation(
@@ -41,24 +67,23 @@ def main():
         #integral_window=integral_window
     )
     
-    # Configure the start/stop button on pin 20 (active low, internal pull-up)
-    button = machine.Pin(20, machine.Pin.IN, machine.Pin.PULL_UP)
-    
     print("Press and release the button on pin 20 to start the navigation sequence.")
     wait_for_button_press(button)
     
     print("Starting main navigation sequence...")
     visited_nodes = nav.run()
     print("Navigation sequence completed. Visited nodes:", visited_nodes)
-    
-    # Flash LED on pin 25 to indicate completion.
-    led = machine.Pin(25, machine.Pin.OUT)
-    for i in range(3):
-        led.value(1)
-        time.sleep(0.2)
-        led.value(0)
-        time.sleep(0.2)
-    
+
+    # Calibrate actuator
+    actuator.Reverse()
+    sleep(3.3)
+    actuator.off()
+
+    # ToF start working once the vehicle is at nodes, NEED TO ADD THIS TO THE NAVIGATION
+    collection(motors, actuator, tof, tcs)
+    # .... + navigating to box-dropping zone
+    drop_off(motors, actuator, tof)
+
     # Wait for a final button press to end the program (optional).
     print("Press and release the button on pin 20 to exit.")
     wait_for_button_press(button)
@@ -66,4 +91,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
