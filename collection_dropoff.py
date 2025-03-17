@@ -1,5 +1,5 @@
-import hardware_documentation.TOF_sensor
-from hardware_documentation.tcs34725 import html_rgb
+import TOF_sensor
+from tcs34725 import html_rgb
 from orientation_control import OrientationController
 
 def collection(motor_pair, actuator, TOF_sensor, colour_sensor) -> str:
