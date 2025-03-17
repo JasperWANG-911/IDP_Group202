@@ -16,7 +16,6 @@ class Actuator:
         self.pwm1 = PWM(Pin(1))       # set speed
         self.pwm1.freq(1000)          # set max frequency 
         self.pwm1.duty_u16(0)         # set duty cycle
-        self.orientation_controller = OrientationController(base_speed=75, k_p=10, k_i=0.2, k_d=8)
 
     def off(self):
         self.pwm1.duty_u16(0)
@@ -29,19 +28,7 @@ class Actuator:
         self.m1Dir.value(1)
         self.pwm1.duty_u16(int(65535 * 100 / 100))
         
-    def controlled_move_forward(self, duration, update_interval=0.1):
-        """Drive forward for the given duration while updating the controller."""
-        start_time = time.time()
-        while time.time() - start_time < duration:
-            self.orientation_controller.update()
-            time.sleep(update_interval)
 
-    def controlled_move_backward(self, duration, update_interval=0.1):
-        """Drive backward for the given duration while updating reverse control."""
-        start_time = time.time()
-        while time.time() - start_time < duration:
-            self.orientation_controller.update_reverse()
-            time.sleep(update_interval)
     def grab_the_box(self, motor_pair):
         # Stop the vehicle in front of the box
         motor_pair.off()
