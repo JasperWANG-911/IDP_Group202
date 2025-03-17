@@ -48,7 +48,7 @@ class Navigation:
             self.orientation_controller.update_reverse()
             time.sleep(update_interval)
 
-    def run(self):
+    def run(self, actuator, TOF_sensor, colour_sensor):
         """
         Main navigation loop.
         (a) At the start, drive forward until the start line (detected by side sensor) is seen.
@@ -59,6 +59,8 @@ class Navigation:
         Returns:
             List of visited nodes.
         """
+        self.actuator = actuator
+        self.TOF_sensor
         current_node = 1
         next_node = 2
         visited = [current_node]
@@ -125,9 +127,9 @@ class Navigation:
                     if current_node == target:
                         target_index += 1
                         if current_node in ['X1', 'X2', 'X3', 'X4']:
-                            target = cd.collection()
+                            target = cd.collection(self.motors, actuator, TOF_sensor, colour_sensor)
                         elif current_node in ['RY', 'BG']:
-                            cd.drop_off()
+                            cd.drop_off(self.motors, actuator, TOF_sensor)
                             target = self.target_route[target_index]
                     break
                 #else:
