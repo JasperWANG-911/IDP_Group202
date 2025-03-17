@@ -16,7 +16,7 @@ def collection(motor_pair, actuator, TOF_sensor, colour_sensor) -> str:
         colour_sensor.gain(60)
         # read the color by R_value
         R_value = html_rgb(data)[0]
-        if R_value < 7: 
+        if R_value < 5: 
             colour = 'BG' # box A/B
         else:
             colour = 'RY' # box C/D
