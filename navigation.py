@@ -150,7 +150,7 @@ class Navigation:
                 # Print sensor data for debugging.
                 print("Sensor data:", sp)
                 if sp.get('left_side') == 1 or sp.get('right_side') == 1:
-                    if sp.get('center_left') == 0 or sp.get('center_right') == 0:
+                    if sp.get('center_left') == 0 and sp.get('center_right') == 0:
                         correction = self.orientation_correction_backward()
                     else:
                         #if cross_stable_start is None:
