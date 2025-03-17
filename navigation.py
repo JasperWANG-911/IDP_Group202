@@ -25,6 +25,9 @@ class Navigation:
         self.led = machine.Pin(14, machine.Pin.OUT)
         # Use previous 0/1/2/3 for direction.
         self.current_orientation = 0
+        self.actuator = None
+        self.TOF_sensor = None
+        self.colour_sensor = None
 
     def flash_led(self, flashes=1, duration=0.5):
         """Flash the LED a specified number of times."""
@@ -60,7 +63,8 @@ class Navigation:
             List of visited nodes.
         """
         self.actuator = actuator
-        self.TOF_sensor
+        self.TOF_sensor = TOF_sensor
+        self.colour_sensor = colour_sensor
         current_node = 1
         next_node = 2
         visited = [current_node]
@@ -127,7 +131,7 @@ class Navigation:
                     if current_node == target:
                         target_index += 1
                         if current_node in ['X1', 'X2', 'X3', 'X4']:
-                            target = cd.collection(self.motors, actuator, TOF_sensor, colour_sensor)
+                            target = cd.collection(self.motors, self.actuator, self.TOF_sensor, self.colour_sensor)
                         elif current_node in ['RY', 'BG']:
                             cd.drop_off(self.motors, actuator, TOF_sensor)
                             target = self.target_route[target_index]
