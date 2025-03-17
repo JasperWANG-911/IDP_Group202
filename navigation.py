@@ -43,6 +43,34 @@ class Navigation:
         while time.time() - start_time < duration:
             self.orientation_controller.update()
             time.sleep(update_interval)
+    def orientation_correction_backward(self, max_correction_time=2.0, backward_interval=0.1):
+        """
+        Move the robot backward in controlled increments until both central sensors are active.
+        
+        Args:
+            max_correction_time (float): Maximum allowed time (in seconds) for the correction.
+            backward_interval (float): Duration of each backward movement step.
+        """
+        start_time = time.time()
+        
+        # Loop until both central sensors are active or maximum correction time is exceeded.
+        while time.time() - start_time < max_correction_time:
+            sp = self.sensor_instance.read_all()
+            # Check if both central sensors are active
+            if sp.get('center_left') == 1 and sp.get('center_right') == 1:
+                print("Orientation corrected: both central sensors active.")
+                self.orientation_controller.stop()
+                return True  # Correction successful
+            
+            # Otherwise, perform a short backward move to adjust orientation.
+            print("Central sensors inactive, performing controlled backward move for correction.")
+            self.controlled_move_backward(backward_interval)
+            time.sleep(0.05)  # short delay to allow sensors to update
+        
+        # If the maximum correction time is reached without correction, stop.
+        print("Maximum correction time reached. Orientation correction unsuccessful.")
+        self.orientation_controller.stop()
+        return False  # Correction failed or timed out
 
     def controlled_move_backward(self, duration, update_interval=0.1):
         """Drive backward for the given duration while updating reverse control."""
@@ -122,22 +150,24 @@ class Navigation:
                 # Print sensor data for debugging.
                 print("Sensor data:", sp)
                 if sp.get('left_side') == 1 or sp.get('right_side') == 1:
-                    #if cross_stable_start is None:
-                        #cross_stable_start = time.time()
-                    #elif time.time() - cross_stable_start >= 0.05:
-                    print("Cross detected: side sensor active for 0.05s.")
-                    current_node = next_node
-                    self.orientation_controller.stop()
-                    if current_node == target:
-                        target_index += 1
-                        if current_node in ['X1', 'X2', 'X3', 'X4']:
-                            target = cd.collection(self.motors, self.actuator, self.TOF_sensor, self.colour_sensor)
-                        elif current_node in ['RY', 'BG']:
-                            cd.drop_off(self.motors, actuator, TOF_sensor)
-                            target = self.target_route[target_index]
-                    break
-                #else:
-                    #cross_stable_start = None
+                    if sp.get('center_left') == 0 or sp.get('center_right') == 0:
+                        correction = self.orientation_correction_backward()
+                    else:
+                        #if cross_stable_start is None:
+                            #cross_stable_start = time.time()
+                        #elif time.time() - cross_stable_start >= 0.05:
+                        print("Cross detected: side sensor active for 0.05s.")
+                        current_node = next_node
+                        self.orientation_controller.stop()
+                        if current_node == target:
+                            target_index += 1
+                            if current_node in ['X1', 'X2', 'X3', 'X4']:
+                                print('Collecting parcel')
+                                target = cd.collection(self.motors, self.actuator, self.TOF_sensor, self.colour_sensor)
+                            elif current_node in ['RY', 'BG']:
+                                cd.drop_off(self.motors, actuator, TOF_sensor)
+                                target = self.target_route[target_index]
+                        break
                 time.sleep(0.05)
             
             # Now that a cross is detected, compute the graph-related information.

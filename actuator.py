@@ -31,7 +31,7 @@ class Actuator:
 
     def grab_the_box(self, motor_pair):
         # Stop the vehicle in front of the box
-        motor_pair.off()
+
         
 
 
@@ -43,7 +43,7 @@ class Actuator:
 
     def drop_the_box(self, motor_pair):
         # Stop the vehicle in front of the box
-        motor_pair.off()
+
 
         # Extend the actuator
         self.Forward()
