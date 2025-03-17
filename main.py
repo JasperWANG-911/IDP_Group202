@@ -6,7 +6,7 @@ from motor import Motor1, Motor2, MotorPair
 from navigation import Navigation
 from collection_dropoff import collection, drop_off
 from TOF_sensor import VL53L0X
-from tcs34725 import TCS34725 as tc
+import tcs34725 as tc
 from actuator import Actuator
 from vl53l0x import VL53L0X
 
@@ -29,7 +29,7 @@ def wait_for_button_press(button):
 
 def main():
     # Tunable parameters:
-    target_route = ['X1', 'X2', 'X3', 'X4', 'RY', 'BG']  # Change target route if needed.
+    target_route = ['X1', 'X2', 'X3', 'X4', 1]  # Change target route if needed.
     base_speed = 75  # Default speed.
     pid_params = (10, 0.2, 8)  # PID parameters: (k_p, k_i, k_d).
     deriv_window = 10  # Size of the derivative moving average window.
@@ -42,8 +42,12 @@ def main():
 
     # Initialze actuator
     actuator = Actuator()
+    actuator.Reverse()
+    time.sleep(7)
+    actuator.off()
+    
     actuator.Forward()
-    time.sleep(3.3)
+    time.sleep(5)
     actuator.off()
 
     # Initialze ToF

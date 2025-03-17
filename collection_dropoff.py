@@ -27,6 +27,6 @@ def collection(motor_pair, actuator, TOF_sensor, colour_sensor) -> str:
 def drop_off(motor_pair, actuator, TOF_sensor):
 
     actuator.drop_the_box(motor_pair)
-    if TOF_sensor.ping > 20:
-        return True
+    
+    return True
 
