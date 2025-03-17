@@ -4,8 +4,6 @@ from orientation_control import OrientationController
 
 def collection(motor_pair, actuator, TOF_sensor, colour_sensor) -> str:
     # orientation control
-    controller = OrientationController()
-    controller.run()
 
     while TOF_sensor.ping() > 150:
         print(TOF_sensor.ping(), 'safe')
@@ -27,8 +25,6 @@ def collection(motor_pair, actuator, TOF_sensor, colour_sensor) -> str:
 # To drop box, call actuator.drop_the_box
 
 def drop_off(motor_pair, actuator, TOF_sensor):
-    controller = OrientationController()
-    controller.run()
 
     actuator.drop_the_box(motor_pair)
     if TOF_sensor.ping > 20:
