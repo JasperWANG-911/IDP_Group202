@@ -9,7 +9,7 @@ from TOF_sensor import VL53L0X
 from tcs34725 import TCS34725 as tc
 from actuator import Actuator
 from vl53l0x import VL53L0X
-from utime import sleep
+
 
 
 def wait_for_button_press(button):
@@ -42,6 +42,9 @@ def main():
 
     # Initialze actuator
     actuator = Actuator()
+    actuator.Forward()
+    time.sleep(3.3)
+    actuator.off()
 
     # Initialze ToF
     i2c = I2C(id=1, sda=Pin(18), scl=Pin(19))
@@ -75,15 +78,6 @@ def main():
     visited_nodes = nav.run(actuator, tof, tcs)
     print("Navigation sequence completed. Visited nodes:", visited_nodes)
 
-    # Calibrate actuator
-    actuator.Reverse()
-    sleep(3.3)
-    actuator.off()
-
-    # ToF start working once the vehicle is at nodes, NEED TO ADD THIS TO THE NAVIGATION
-    collection(motors, actuator, tof, tcs)
-    # .... + navigating to box-dropping zone
-    drop_off(motors, actuator, tof)
 
     # Wait for a final button press to end the program (optional).
     print("Press and release the button on pin 20 to exit.")
