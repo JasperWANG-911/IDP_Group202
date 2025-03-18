@@ -37,14 +37,14 @@ class Navigation:
             self.led.value(0)
             time.sleep(duration)
 
-    def controlled_move_forward(self, duration, update_interval=0.01):
+    def controlled_move_forward(self, duration, update_interval=0.05):
         """Drive forward for the given duration while updating the controller."""
         start_time = time.time()
         while time.time() - start_time < duration:
             self.orientation_controller.update()
             time.sleep(update_interval)
 
-    def controlled_move_backward(self, duration, update_interval=0.01):
+    def controlled_move_backward(self, duration, update_interval=0.05):
         """Drive backward for the given duration while updating reverse control."""
         start_time = time.time()
         while time.time() - start_time < duration:
@@ -144,7 +144,7 @@ class Navigation:
                     break
                 #else:
                     #cross_stable_start = None
-                time.sleep(0.01)
+                time.sleep(0.05)
             
             # Now that a cross is detected, compute the graph-related information.
             next_node = get_next_node(current_node, target)
@@ -193,7 +193,7 @@ class Navigation:
                 while sp.get('left_side') == 0 and sp.get('right_side') == 0:
                     self.orientation_controller.update_reverse()
                     sp = self.sensor_instance.read_all()
-                    time.sleep(0.01)  # reduced sleep interval for more frequent updates
+                    time.sleep(0.05)  # reduced sleep interval for more frequent updates
                 self.orientation_controller.stop()
 
                 #turn_90(self.orientation_controller, self.sensor_instance, angle=180, turn_type='right', turn_time=turn_time)      
@@ -212,89 +212,6 @@ class Navigation:
         print("Navigation complete. All target nodes reached.")
         return visited
     
-    def run2(self, actuator, TOF_sensor, colour_sensor):
-        start = True
-        current_node = 1
-        next_node = 2
-        visited = [current_node]
-        target = self.target_route[0]
-        target_index = 0
-        
-        while target_index < len(self.target_route):
-            # Always checking sensors, as soon as side sensors pick up a reading, initiates nodal sequence
-            sp = self.sensor_instance.read_all()
-            if sp.get('left_side') == 1 or sp.get('right_side') == 1:
-                if start:
-                    # If at the start, this indicates it has just left the starting box
-                    print("Start line detected at node 1.")
-                    self.led.value(1)
-                    self.controlled_move_forward(0.5)
-                    start = False
-                else:
-                    # Find next node and edge direction
-                    next_node = get_next_node(current_node, target)
-                    print(f"Graph computation: Current node: {current_node}, Next node: {next_node}, Target: {target}")
-                    edge_dir = get_edge_direction(current_node, next_node)
-                    if edge_dir is None:
-                        print('no avaliable edge')
-                        desired_direction = 0  # Default (North)
-                    else:
-                        mapping = {'N': 0, 'E': 1, 'S': 2, 'W': 3}
-                        desired_direction = mapping.get(edge_dir, 0)
-                    # Compute turn direction
-                    turn_type = compute_turn_type(self.current_orientation, desired_direction)
-                    print(f"Graph computation: Current Orientation: {self.current_orientation}, Desired: {desired_direction}, Turn: {turn_type}")
-                    check_node_sensor(self.sensor_instance, current_node)
-
-                     # Execute turning only if turn_type is left/right and cross was detected.
-                    if turn_type in ['left', 'right']:
-                        self.orientation_controller.stop()
-                        time.sleep(0.1)
-                        turn_time = 2.2
-                        turn_until_shift(self.orientation_controller, self.sensor_instance, turn_type=turn_type, timeout= 1.8, turning_sensitivity=0)
-                        print(f"Executed {turn_type} turn at cross.")
-                        self.current_orientation = desired_direction
-                        self.controlled_move_forward(0.5)
-                    elif turn_type == 'rear':
-                        print("Executing reverse move (without turning) to reach next node.")
-                        self.controlled_move_backward(1)
-                        # Increase sensor sampling frequency during reverse
-                        sp = self.sensor_instance.read_all()
-                        while sp.get('left_side') == 0 and sp.get('right_side') == 0:
-                            self.orientation_controller.update_reverse()
-                            sp = self.sensor_instance.read_all()
-                            time.sleep(0.05)  # reduced sleep interval for more frequent updates
-                        self.orientation_controller.stop()
-
-                        #turn_90(self.orientation_controller, self.sensor_instance, angle=180, turn_type='right', turn_time=turn_time)      
-                        #self.current_orientation = desired_direction         
-                    else:
-                        self.controlled_move_forward(1)
-                        print("No turning required (straight).")
-                    if visited[-1] != current_node:
-                        # Add node to visited nodes array
-                        visited.append(current_node)
-                        time.sleep(0.1)
-                    if next_node in ['X1', 'X2', 'X3', 'X4']:
-                        # If collection point, initiate collection sequence
-                        colour = cd.collection(self.motors, actuator, TOF_sensor, colour_sensor)
-                        target_index += 1
-                        self.target_route[target_index] = colour
-                    elif next_node in ['RY', 'BG']:
-                        # If drop-off point, initiate drop-off sequence
-                        cd.drop_off(self.motors, actuator, TOF_sensor)
-                        target_index += 1
-                    else:
-                        # If none of the special points
-                        break        
-                break
-            else:
-                self.orientation_controller.update()
-                time.sleep(0.01)
-        self.controlled_move_forward(1.5)
-        self.led.value(0)
-        print("Navigation complete. All target nodes reached.")
-        return visited
 
 if __name__ == "__main__":
     from motor import Motor1, Motor2, MotorPair
