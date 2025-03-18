@@ -37,14 +37,14 @@ class Navigation:
             self.led.value(0)
             time.sleep(duration)
 
-    def controlled_move_forward(self, duration, update_interval=0.01):
+    def controlled_move_forward(self, duration, update_interval=0.05):
         """Drive forward for the given duration while updating the controller."""
         start_time = time.time()
         while time.time() - start_time < duration:
             self.orientation_controller.update()
             time.sleep(update_interval)
 
-    def controlled_move_backward(self, duration, update_interval=0.01):
+    def controlled_move_backward(self, duration, update_interval=0.05):
         """Drive backward for the given duration while updating reverse control."""
         start_time = time.time()
         while time.time() - start_time < duration:
@@ -80,7 +80,7 @@ class Navigation:
                 break
             else:
                 self.orientation_controller.update()
-                time.sleep(0.01)
+                time.sleep(0.05)
         
         target_index = 0
         num_targets = len(self.target_route)
@@ -144,7 +144,7 @@ class Navigation:
                     break
                 #else:
                     #cross_stable_start = None
-                time.sleep(0.01)
+                time.sleep(0.05)
             
             # Now that a cross is detected, compute the graph-related information.
             next_node = get_next_node(current_node, target)
@@ -187,13 +187,13 @@ class Navigation:
                 self.controlled_move_forward(0.5)
             elif turn_type == 'rear':
                 print("Executing reverse move (without turning) to reach next node.")
-                self.controlled_move_backward(1.0)
+                self.controlled_move_backward(0.6)
                 # Increase sensor sampling frequency during reverse
                 sp = self.sensor_instance.read_all()
                 while sp.get('left_side') == 0 and sp.get('right_side') == 0:
                     self.orientation_controller.update_reverse()
                     sp = self.sensor_instance.read_all()
-                    time.sleep(0.01)  # reduced sleep interval for more frequent updates
+                    time.sleep(0.05)  # reduced sleep interval for more frequent updates
                 self.orientation_controller.stop()
 
                 #turn_90(self.orientation_controller, self.sensor_instance, angle=180, turn_type='right', turn_time=turn_time)      
@@ -263,7 +263,7 @@ class Navigation:
                         while sp.get('left_side') == 0 and sp.get('right_side') == 0:
                             self.orientation_controller.update_reverse()
                             sp = self.sensor_instance.read_all()
-                            time.sleep(0.01)  # reduced sleep interval for more frequent updates
+                            time.sleep(0.05)  # reduced sleep interval for more frequent updates
                         self.orientation_controller.stop()
 
                         #turn_90(self.orientation_controller, self.sensor_instance, angle=180, turn_type='right', turn_time=turn_time)      
@@ -290,7 +290,7 @@ class Navigation:
                 break
             else:
                 self.orientation_controller.update()
-                time.sleep(0.1)
+                time.sleep(0.05)
         self.controlled_move_forward(1.5)
         self.led.value(0)
         print("Navigation complete. All target nodes reached.")
