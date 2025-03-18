@@ -2,7 +2,7 @@ import time
 from motor import Motor1, Motor2
 from orientation_control import clamp_speed, set_motor_speed
 
-def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_increment=0.1, timeout=5, initial_delay=1.7, turning_base_speed=50, turning_sensitivity=0.6):
+def turn_until_shift(orientation_controller, sensor_instance, turn_type, base_increment=0.1, timeout=5, initial_delay=1.7, turning_base_speed=25, turning_sensitivity=0.6):
     """
     Turn the robot by toggling the action type in the orientation controller until the sensor readings 
     indicate proper alignment. This method automatically updates the orientation controller parameters for turning 

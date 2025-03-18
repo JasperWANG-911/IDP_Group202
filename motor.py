@@ -20,7 +20,7 @@ class Motor1:
         :param speed: Speed as a percentage (0-100)
         """
         self.m1Dir.value(0)  # Set direction to forward
-        duty = int(65535 * speed / 100)
+        duty = int(65535 * 2 * speed / 100)
         self.pwm1.duty_u16(duty)
 
     def reverse(self, speed=100):
@@ -29,7 +29,7 @@ class Motor1:
         :param speed: Speed as a percentage (0-100)
         """
         self.m1Dir.value(1)  # Set direction to reverse
-        duty = int(65535 * speed / 100)
+        duty = int(65535 * 2 * speed / 100)
         self.pwm1.duty_u16(duty)
 
 
@@ -52,7 +52,7 @@ class Motor2:
         :param speed: Speed as a percentage (0-100)
         """
         self.m1Dir.value(0)  # Set direction to forward
-        duty = int(65535 * speed / 100)
+        duty = int(65535 * 2 * speed / 100)
         self.pwm1.duty_u16(duty)
 
     def reverse(self, speed=100):
@@ -61,7 +61,7 @@ class Motor2:
         :param speed: Speed as a percentage (0-100)
         """
         self.m1Dir.value(1)  # Set direction to reverse
-        duty = int(65535 * speed / 100)
+        duty = int(65535 * 2 *  speed / 100)
         self.pwm1.duty_u16(duty)
 
 
