@@ -37,14 +37,14 @@ class Navigation:
             self.led.value(0)
             time.sleep(duration)
 
-    def controlled_move_forward(self, duration, update_interval=0.1):
+    def controlled_move_forward(self, duration, update_interval=0.01):
         """Drive forward for the given duration while updating the controller."""
         start_time = time.time()
         while time.time() - start_time < duration:
             self.orientation_controller.update()
             time.sleep(update_interval)
 
-    def controlled_move_backward(self, duration, update_interval=0.1):
+    def controlled_move_backward(self, duration, update_interval=0.01):
         """Drive backward for the given duration while updating reverse control."""
         start_time = time.time()
         while time.time() - start_time < duration:
