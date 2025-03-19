@@ -31,7 +31,7 @@ def main():
     # Tunable parameters:
     target_route = ['X1', 'X2', 'X3', 'X4', 1]  # Change target route if needed.
     base_speed = 75  # Default speed.
-    pid_params = (9, 0.2, 15)  # PID parameters: (k_p, k_i, k_d).
+    pid_params = (10, 0, 18.0)  # PID parameters: (k_p, k_i, k_d).
     deriv_window = 10  # Size of the derivative moving average window.
     integral_window = 10  # Size of the integral accumulation window.
 
@@ -42,9 +42,9 @@ def main():
 
     # Initialze actuator
     actuator = Actuator()
-    actuator.Reverse()
-    time.sleep(7)
-    actuator.off()
+    #actuator.Reverse()
+    #time.sleep(5)
+    #actuator.off()
     
     actuator.Forward()
     time.sleep(5)
