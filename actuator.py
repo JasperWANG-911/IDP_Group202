@@ -37,7 +37,7 @@ class Actuator:
 
         # Retract the actuator to grab the box
         self.Reverse()
-        sleep(4.5)
+        sleep(5)
         self.off()
 
 
@@ -47,7 +47,7 @@ class Actuator:
 
         # Extend the actuator
         self.Forward()
-        sleep(4.5) 
+        sleep(3.1) 
         self.off()
     
 

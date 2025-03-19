@@ -12,11 +12,12 @@ def collection(motor_pair, actuator, TOF_sensor, colour_sensor) -> str:
         # Grab the box when it is detected by ToF sensor
         print('box detected')
         actuator.grab_the_box(motor_pair)
-        data = colour_sensor.read(True)
         colour_sensor.gain(60)
+        data = colour_sensor.read(True)
+        
         # read the color by R_value
         R_value = html_rgb(data)[0]
-        if R_value < 5: 
+        if R_value < 4: 
             colour = 'BG' # box A/B
         else:
             colour = 'RY' # box C/D

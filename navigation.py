@@ -76,7 +76,7 @@ class Navigation:
             if sp.get('left_side') == 1 or sp.get('right_side') == 1:
                 print("Start line detected at node 1.")
                 self.led.value(1)
-                self.controlled_move_forward(0.5)
+                self.controlled_move_forward(1.5)
                 break
             else:
                 self.orientation_controller.update()
@@ -140,7 +140,8 @@ class Navigation:
                             self.controlled_move_backward(0.2)
                         elif current_node == 1:
                             self.controlled_move_forward(1)
-                            target_index = 10000000
+                            self.orientation_controller.stop()
+                            target_index = 1000000
                     break
                 #else:
                     #cross_stable_start = None
@@ -152,7 +153,7 @@ class Navigation:
             edge_dir = get_edge_direction(current_node, next_node)
             if edge_dir is None:
                 print('no avaliable edge')
-                desired_direction = 0  # Default (North)
+                desired_direction = 2  # Default (South)
             else:
                 mapping = {'N': 0, 'E': 1, 'S': 2, 'W': 3}
                 desired_direction = mapping.get(edge_dir, 0)
@@ -181,13 +182,13 @@ class Navigation:
                     else:
                         turn_time += 0.3
                 '''
-                turn_until_shift(self.orientation_controller, self.sensor_instance, turn_type=turn_type, timeout= 1.8, turning_sensitivity=0)
+                turn_until_shift(self.orientation_controller, self.sensor_instance, turn_type=turn_type, timeout= 2.1, turning_sensitivity=0)
                 print(f"Executed {turn_type} turn at cross.")
                 self.current_orientation = desired_direction
-                self.controlled_move_forward(0.5)
+                self.controlled_move_forward(0.8)
             elif turn_type == 'rear':
                 print("Executing reverse move (without turning) to reach next node.")
-                self.controlled_move_backward(0.6)
+                self.controlled_move_backward(0.5)
                 # Increase sensor sampling frequency during reverse
                 sp = self.sensor_instance.read_all()
                 while sp.get('left_side') == 0 and sp.get('right_side') == 0:
@@ -209,6 +210,7 @@ class Navigation:
             time.sleep(0.01)
         
         self.led.value(0)
+        self.orientation_controller.stop()
         print("Navigation complete. All target nodes reached.")
         return visited
     
